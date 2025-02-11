@@ -1,0 +1,88 @@
+:root {
+    color-scheme: light dark;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100%;
+}
+
+h1 {
+    font-size: 0.8rem;
+    margin: 0;
+}
+
+body {
+    margin: 0;
+    padding: 0.6rem;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+pre {
+    flex-grow: 1;
+    display: block;
+    padding: 0.4rem;
+    margin: 0;
+    text-wrap: wrap;
+    border: 1px solid lightgray;
+    border-radius: 4px;
+    overflow: auto;
+}
+
+code {
+    display: block;
+}
+
+button {
+    padding: 0.4rem 0.6rem;
+}
+
+.log.info {
+    color: forestgreen;
+}
+
+.log.error {
+    color: crimson;
+}
+
+@media (prefers-color-scheme: dark) {
+    .log.info {
+        color: greenyellow;
+    }
+
+    .log.error {
+        color: red;
+    }
+}
+
+form {
+    display: flex;
+    gap: 0.6rem;
+}
+
+form input {
+    flex-grow: 1;
+    padding: 0.4rem 0.6rem;
+}
+
+#commands {
+    display: flex;
+    flex-shrink: 0;
+    gap: 0.6rem;
+    line-height: calc(1rem + 2 * 0.4rem);
+    flex-direction: row;
+    justify-items: center;
+    overflow-x: auto;
+    overflow-y: unset;
+}
+
+#commands button {
+    text-wrap: nowrap;
+}
