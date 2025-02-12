@@ -8,4 +8,6 @@ Ukrainian version: https://tuoris.github.io/elm327_debugger/
 
 ## UI
 
-![ELM 327 Bluetooth app on the smartphone](assets/smartphone-app-screen.png)
+### Reading Hyundai Kona/Kia Niro data
+
+![The ELM 327 Bluetooth app on a smartphone](assets/smartphone-app-screen.png)
