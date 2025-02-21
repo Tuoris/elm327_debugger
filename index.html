@@ -1,27 +1,25 @@
 <!DOCTYPE html>
 <html lang="uk">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0" />
     <title>ELM 327 Bluetooth додаток</title>
-    <meta name="description" content="Перші кроки по комунікації ELM 327 з Web Bluetooth">
-    <link rel="stylesheet" href="style.css?v=0.7.0">
-</head>
+    <meta name="description" content="Перші кроки по комунікації ELM 327 з Web Bluetooth" />
+    <link rel="stylesheet" href="style.css?v=0.8.0" />
+  </head>
 
-<body>
-    <h1>ELM 327 Bluetooth додаток <small>ver. 0.7.0</small></h1>
+  <body>
+    <h1>ELM 327 Bluetooth додаток <small>ver. 0.8.0</small></h1>
     <button id="requestDevice">З'єднатись з ELM 327</button>
 
     <pre id="logs"></pre>
 
     <form id="submitForm">
-        <input type="text" name="dataToSent" placeholder="Введіть команду або використайте вбудовані команди нижче">
-        <button type="submit">Надіслати</button>
+      <input type="text" name="dataToSent" placeholder="Введіть команду або використайте вбудовані команди нижче" />
+      <button type="submit">Надіслати</button>
     </form>
-    <div id="commands">
-    </div>
-</body>
-<script src="main.js?v=0.7.0"></script>
-
+    <div id="commands"></div>
+  </body>
+  <script src="utils.js?v=0.8.0"></script>
+  <script src="main.js?v=0.8.0"></script>
 </html>

@@ -15,7 +15,7 @@ const logsContainer = document.querySelector("#logs");
 
 function log(string, level = "debug") {
   const newLogLine = document.createElement("code");
-  newLogLine.textContent = string;
+  newLogLine.textContent = `${new Date().toISOString()}: ${string}`;
   newLogLine.classList.add("log");
   newLogLine.classList.add(level);
   logsContainer.appendChild(newLogLine);
@@ -37,7 +37,7 @@ async function onRequestBluetoothDeviceButtonClick() {
 
     log(`Запит пристрою: ${device.name} (${device.id})`);
     selectedDevice = device;
-    processActiveDevice();
+    connectAndSetupBluetoothScanner();
   } catch (error) {
     log(`Помилка: ${error}`, "error");
   }
@@ -46,11 +46,9 @@ async function onRequestBluetoothDeviceButtonClick() {
 document.querySelector("#requestDevice").addEventListener("click", onRequestBluetoothDeviceButtonClick);
 
 let writeCharacteristic = null;
-let readyForTheNextCommand = true;
+const commandSignals = {};
 
-const sleep = async (timeout) => new Promise((resolve) => setTimeout(() => resolve(true), timeout));
-
-async function processActiveDevice() {
+async function connectAndSetupBluetoothScanner() {
   if (!selectedDevice) {
     return;
   }
@@ -86,15 +84,24 @@ async function processActiveDevice() {
   log("Створення підписки на отримання відповідей.");
   writeCharacteristic.addEventListener("characteristicvaluechanged", (event) => {
     const rawValue = event.currentTarget.value;
-    const value = new TextDecoder().decode(rawValue).trim();
-    log(`Отримано: ${value}`);
-    parseResponse(value);
+    receiveValue(rawValue);
   });
 
-  sendData("ATZ");
-  await sleep(500);
+  await sendData("ATZ");
+  await sendData("0100");
 
   log("Підписку створено - готовий до роботи.");
+}
+
+function receiveValue(rawValue) {
+  const rawBytes = Array.from(new Int8Array(rawValue.buffer)).map((n) => n.toString(16).padStart(2, "0"));
+  console.log(`Raw bytes: ${rawBytes.join(" ")}`);
+  const value = new TextDecoder().decode(rawValue).trim();
+  log(`Отримано: ${value}`);
+  const result = parseResponse(value);
+  if (result) {
+    commandSignals.sendSignal.resolve(result);
+  }
 }
 
 let currentCommand = "";
@@ -105,11 +112,15 @@ const sendData = (data) => {
     return;
   }
 
+  commandSignals.sendSignal = new Deferred();
+
   if (data) {
     log(`Надсилання: ${data}`);
     writeCharacteristic.writeValue(new TextEncoder().encode(data + "\r"));
     currentCommand = data.trim();
   }
+
+  return commandSignals.sendSignal.promise;
 };
 
 const submitForm = document.querySelector("#submitForm");
@@ -123,6 +134,7 @@ submitForm.addEventListener("submit", (event) => {
 
 const COMMANDS = {
   VIN: "0902",
+  MONITOR_STATUS_SINCE_DTCS_CLEARED: "0101",
   ENGINE_COOLANT_TEMPERATURE: "0105",
   ENGINE_OIL_TEMPERATURE: "015C",
   CALCULATED_ENGINE_LOAD: "0104",
@@ -134,10 +146,14 @@ const COMMANDS = {
   CONTROL_MODULE_VOLTAGE: "0142",
   ENGINE_FUEL_RATE: "015E",
   EXTENDED_TIMEOUT: "AT ST96",
+  KIA_NIRO_BMS_INFO_01: "220101",
+  KIA_NIRO_BMS_INFO_05: "220105",
+  KIA_NIRO_ABS_INFO: "22C101",
 };
 
 const COMMAND_LABELS = {
   [COMMANDS.VIN]: "VIN",
+  [COMMANDS.MONITOR_STATUS_SINCE_DTCS_CLEARED]: "Статус моніторингу після видалення кодів несправностей",
   [COMMANDS.ENGINE_COOLANT_TEMPERATURE]: "Температура ох. рідини двигуна",
   [COMMANDS.ENGINE_OIL_TEMPERATURE]: "Температура моторної оливи",
   [COMMANDS.CALCULATED_ENGINE_LOAD]: "Розрахункове навантаження двигуна",
@@ -149,6 +165,9 @@ const COMMAND_LABELS = {
   [COMMANDS.CONTROL_MODULE_VOLTAGE]: "Напруга на ЕБУ",
   [COMMANDS.ENGINE_FUEL_RATE]: "Витрата пального",
   [COMMANDS.EXTENDED_TIMEOUT]: "Збільшити час відповіді",
+  [COMMANDS.KIA_NIRO_BMS_INFO_01]: "Kia Niro інформація з BMS #1",
+  [COMMANDS.KIA_NIRO_BMS_INFO_05]: "Kia Niro інформація з BMS #5",
+  [COMMANDS.KIA_NIRO_ABS_INFO]: "Kia Niro інформація з ABS #1",
 };
 
 const commandsContainer = document.querySelector("#commands");
@@ -163,6 +182,7 @@ for (const command of Object.values(COMMANDS)) {
 
 const handlers = {
   [COMMANDS.VIN]: parseVINResponse,
+  [COMMANDS.MONITOR_STATUS_SINCE_DTCS_CLEARED]: parseMonitorStatusSinceDtcsCleared,
   [COMMANDS.ENGINE_COOLANT_TEMPERATURE]: parseEngineCoolantTemperature,
   [COMMANDS.ENGINE_OIL_TEMPERATURE]: parseEngineOilTemperature,
   [COMMANDS.CALCULATED_ENGINE_LOAD]: parseCalculatedEngineLoadResponse,
@@ -173,14 +193,46 @@ const handlers = {
   [COMMANDS.FUEL_TANK_LEVEL]: parseFuelTankLevel,
   [COMMANDS.ENGINE_FUEL_RATE]: parseEngineFuelRate,
   [COMMANDS.CONTROL_MODULE_VOLTAGE]: parseControlModuleVoltage,
+  [COMMANDS.KIA_NIRO_BMS_INFO_01]: parseKiaNiroBmsInfo01,
+  [COMMANDS.KIA_NIRO_BMS_INFO_05]: parseKiaNiroBmsInfo05,
+  [COMMANDS.KIA_NIRO_ABS_INFO]: parseKiaNiroAbsInfo,
 };
 
 function parseResponse(value) {
-  console.log(currentCommand, COMMANDS);
   const handler = handlers[currentCommand];
   if (handler) {
-    handler(value);
+    return handler(value);
   }
+
+  return defaultHandler(value);
+}
+
+function defaultHandler(value) {
+  if (value.includes(">")) {
+    return true;
+  }
+}
+
+function parseMonitorStatusSinceDtcsCleared(value) {
+  if (!value.startsWith("41 01")) {
+    return;
+  }
+
+  const separateBytes = value.trim().split(" ");
+  const byteA = separateBytes[2];
+  const byteABits = unsignedIntFromBytes(byteA).toString(2);
+  const checkEngineLightOn = byteABits[0] === "1";
+  const numberOfConfirmedEmissionsRelatedDtcs = parseInt(byteABits.slice(1), 2);
+
+  log(`Лампа "Check Engine" ${checkEngineLightOn ? "горить" : "не горить"}.`, "info");
+  log(
+    `Кількість підтверджених DTC, пов'язаних з викидами:
+${numberOfConfirmedEmissionsRelatedDtcs}`,
+    "info"
+  );
+  // TODO: Parse rest oof the data
+
+  return numberOfConfirmedEmissionsRelatedDtcs;
 }
 
 const engineCoolantTemperatureResponses = ["0105", "41 05 4E \r", "\r>"];
@@ -192,9 +244,11 @@ function parseEngineCoolantTemperature(value) {
 
   const separateBytes = value.trim().split(" ");
   const temperatureByte = separateBytes[2];
-  const temperatureValue = parseInt(temperatureByte, 16) - 40;
+  const temperatureValue = unsignedIntFromBytes(temperatureByte) - 40;
 
   log(`Температура охолоджувальної рідини двигуна: ${temperatureValue} °C`, "info");
+
+  return temperatureValue;
 }
 
 const vinResponses = [
@@ -229,6 +283,7 @@ function parseVINResponse(value) {
   log(`VIN: ${vinString}`, "info");
 
   vinBuffer = [];
+  return vinString;
 }
 
 function parseCalculatedEngineLoadResponse(value) {
@@ -238,9 +293,11 @@ function parseCalculatedEngineLoadResponse(value) {
 
   const separateBytes = value.trim().split(" ");
   const engineLoadByte = separateBytes[2];
-  const engineLoadValue = parseInt(engineLoadByte) / 2.55;
+  const engineLoadValue = unsignedIntFromBytes(engineLoadByte) / 2.55;
 
   log(`Розрахункове навантаження двигуна: ${engineLoadValue} %`, "info");
+
+  return engineLoadValue;
 }
 
 function parseEngineOilTemperature(value) {
@@ -250,9 +307,11 @@ function parseEngineOilTemperature(value) {
 
   const separateBytes = value.trim().split(" ");
   const temperatureByte = separateBytes[2];
-  const temperatureValue = parseInt(temperatureByte, 16) - 40;
+  const temperatureValue = unsignedIntFromBytes(temperatureByte) - 40;
 
   log(`Температура моторної оливи: ${temperatureValue} °C`, "info");
+
+  return temperatureValue;
 }
 
 function parseEngineSpeed(value) {
@@ -263,9 +322,11 @@ function parseEngineSpeed(value) {
   const separateBytes = value.trim().split(" ");
   const rpmByteA = separateBytes[2];
   const rpmByteB = separateBytes[3];
-  const rpmValue = (256 * parseInt(rpmByteA, 16) + parseInt(rpmByteB, 16)) / 4;
+  const rpmValue = unsignedIntFromBytes([rpmByteA, rpmByteB]) / 4;
 
   log(`Оберти двигуна: ${rpmValue} об/хв`, "info");
+
+  return rpmValue;
 }
 
 function parseVehicleSpeed(value) {
@@ -275,9 +336,11 @@ function parseVehicleSpeed(value) {
 
   const separateBytes = value.trim().split(" ");
   const speedByte = separateBytes[2];
-  const speedValue = parseInt(speedByte, 16);
+  const speedValue = unsignedIntFromBytes(speedByte);
 
   log(`Швидкість: ${speedValue} км/год`, "info");
+
+  return speedValue;
 }
 
 function parseIntakeAirTemperature(value) {
@@ -287,9 +350,11 @@ function parseIntakeAirTemperature(value) {
 
   const separateBytes = value.trim().split(" ");
   const temperatureByte = separateBytes[2];
-  const temperatureValue = parseInt(temperatureByte, 16) - 40;
+  const temperatureValue = unsignedIntFromBytes(temperatureByte) - 40;
 
   log(`Температура повітря на вході: ${temperatureValue} °C`, "info");
+
+  return temperatureValue;
 }
 
 function parseMassAirFlowSensorValue(value) {
@@ -300,9 +365,11 @@ function parseMassAirFlowSensorValue(value) {
   const separateBytes = value.trim().split(" ");
   const massAirFlowA = separateBytes[2];
   const massAirFlowB = separateBytes[3];
-  const massAirFlowValue = (256 * parseInt(massAirFlowA, 16) + parseInt(massAirFlowB, 16)) / 100;
+  const massAirFlowValue = unsignedIntFromBytes([massAirFlowA, massAirFlowB]) / 100;
 
-  log(`Масова витрата повітря: ${massAirFlowValue} г/c`, "info");
+  log(`Масова витрата повітря: ${massAirFlowValue.toFixed(2)} г/c`, "info");
+
+  return massAirFlowValue;
 }
 
 function parseFuelTankLevel(value) {
@@ -312,9 +379,11 @@ function parseFuelTankLevel(value) {
 
   const separateBytes = value.trim().split(" ");
   const fuelTankLevelByte = separateBytes[2];
-  const fuelTankLevelValue = (100 / 255) * parseInt(fuelTankLevelByte, 16);
+  const fuelTankLevelValue = (100 / 255) * unsignedIntFromBytes(fuelTankLevelByte);
 
   log(`Рівень палива в баку: ${fuelTankLevelValue.toFixed(2)} %`, "info");
+
+  return fuelTankLevelValue;
 }
 
 function parseControlModuleVoltage(value) {
@@ -325,9 +394,11 @@ function parseControlModuleVoltage(value) {
   const separateBytes = value.trim().split(" ");
   const voltageByteA = separateBytes[2];
   const voltageByteB = separateBytes[3];
-  const voltageValue = (256 * parseInt(voltageByteA, 16) + parseInt(voltageByteB, 16)) / 1000;
+  const voltageValue = unsignedIntFromBytes([voltageByteA, voltageByteB]) / 1000;
 
-  log(`Напруга на електронному блоці управління: ${voltageValue} В`, "info");
+  log(`Напруга на електронному блоці управління: ${voltageValue.toFixed(2)} В`, "info");
+
+  return voltageValue;
 }
 
 function parseEngineFuelRate(value) {
@@ -338,7 +409,110 @@ function parseEngineFuelRate(value) {
   const separateBytes = value.trim().split(" ");
   const rateByteA = separateBytes[2];
   const rateByteB = separateBytes[3];
-  const rateValue = (256 * parseInt(rateByteA, 16) + parseInt(rateByteB, 16)) / 20;
+  const rateValue = unsignedIntFromBytes([rateByteA, rateByteB]) / 20;
 
-  log(`Витрата пального: ${rateValue} л/год`, "info");
+  log(`Витрата пального: ${rateValue.toFixed(2)} л/год`, "info");
+
+  return rateValue;
+}
+
+function parseBmsInfoBuffer(buffer) {
+  const joinedBuffer = buffer.join("").replaceAll("\n", "");
+
+  const numberedPackets = Array.from(joinedBuffer.matchAll(/\d\:(\s[0-9A-F][0-9A-F]){7}/gm).map((match) => match[0]));
+
+  const packets = numberedPackets.map((packet) => packet.split(":")[1].trim().split(" "));
+
+  return packets;
+}
+
+let bmsInfoBuffer01 = [];
+function parseKiaNiroBmsInfo01(value) {
+  if (value.includes(">")) {
+    const separatePacketBytes = parseBmsInfoBuffer(bmsInfoBuffer01);
+
+    console.table(separatePacketBytes);
+
+    if (separatePacketBytes.length !== 8) {
+      bmsInfoBuffer01 = [];
+      log(
+        `Помилка при отриманні інформації з BMS #1 Kia Niro - неправильна кількість пакетів: ${separatePacketBytes.length}.`
+      );
+      return "<parseKiaNiroBmsInfo error>";
+    }
+
+    console.table(separatePacketBytes);
+
+    const batteryCurrentValue = signedIntFromBytes(separatePacketBytes[1].slice(0, 2)) / 10;
+    const batteryVoltageValue = signedIntFromBytes(separatePacketBytes[1].slice(2, 4)) / 10;
+    const batteryPower = batteryCurrentValue * batteryVoltageValue;
+
+    const battery12VVoltage = unsignedIntFromBytes(separatePacketBytes[3][5]) / 10;
+
+    const socValue = unsignedIntFromBytes(separatePacketBytes[0][1]) / 2;
+
+    const maxRegenValue = unsignedIntFromBytes(separatePacketBytes[0].slice(2, 4)) / 100;
+
+    const maxPowerValue = unsignedIntFromBytes(separatePacketBytes[0].slice(4, 6)) / 100;
+
+    const batteryMaxT = signedIntFromBytes(separatePacketBytes[1][4]);
+    const batteryMinT = signedIntFromBytes(separatePacketBytes[1][5]);
+
+    const maxCellVoltageValue = (unsignedIntFromBytes(separatePacketBytes[2][6]) * 2) / 100;
+    const minCellVoltageValue = (unsignedIntFromBytes(separatePacketBytes[3][1]) * 2) / 100;
+
+    log(`Інформація з BMS #1 Kia Niro:`, "info");
+    log(`- рівень заряду: ${socValue} %`, "info");
+    log(`- доступна потужність рекуперації: ${maxRegenValue} кВт`, "info");
+    log(`- доступна потужність: ${maxPowerValue} кВт`, "info");
+    log(`- температура акумулятора (макс.): ${batteryMaxT} °C`, "info");
+    log(`- температура акумулятора (мін.): ${batteryMinT} °C`, "info");
+    log(`- мінімальна напруга комірки: ${maxCellVoltageValue} В`, "info");
+    log(`- максимальна напруга комірки: ${minCellVoltageValue} В`, "info");
+    log(
+      `- потужність ${batteryPower > 0 ? "розряджання" : "заряджання"} акумулятора: ${
+        Math.abs(batteryPower) / 1000
+      } кВт`,
+      "info"
+    );
+    log(
+      `- струм батареї: ${batteryCurrentValue} А / ${batteryCurrentValue > 0 ? "розряджання" : "заряджання"}`,
+      "info"
+    );
+    log(`- напруга батареї: ${batteryVoltageValue} В`, "info");
+    log(`- напруга 12В батареї: ${battery12VVoltage} В`, "info");
+
+    bmsInfoBuffer01 = [];
+  }
+
+  bmsInfoBuffer01.push(value);
+}
+
+let bmsInfoBuffer05 = [];
+function parseKiaNiroBmsInfo05(value) {
+  console.log(bmsInfoBuffer05);
+  if (value.includes(">")) {
+    console.log(bmsInfoBuffer05);
+
+    const separatePacketBytes = parseBmsInfoBuffer(bmsInfoBuffer05);
+
+    console.table(separatePacketBytes);
+
+    console.table(separatePacketBytes);
+
+    const heaterTemp = parseSignedByte(separatePacketBytes[2][6]);
+
+    const sohByteA = separatePacketBytes[3][1];
+    const sohByteB = separatePacketBytes[3][2];
+
+    const sohValue = unsignedIntFromBytes([sohByteA, sohByteB]) / 10;
+
+    log(`Інформація з BMS #5 Kia Niro:`, "info");
+    log(`- здоров'я акумулятора (SOH): ${sohValue} %`, "info");
+    log(`- температура обігрівача акумулятора: ${heaterTemp} °C`, "info");
+
+    bmsInfoBuffer05 = [];
+  }
+
+  bmsInfoBuffer05.push(value);
 }

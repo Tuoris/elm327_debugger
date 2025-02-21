@@ -27,6 +27,7 @@ body {
 
 pre {
     flex-grow: 1;
+    font-size: 0.8rem;
     display: block;
     padding: 0.4rem;
     margin: 0;
