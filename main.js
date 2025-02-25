@@ -146,9 +146,8 @@ const COMMANDS = {
   CONTROL_MODULE_VOLTAGE: "0142",
   ENGINE_FUEL_RATE: "015E",
   EXTENDED_TIMEOUT: "AT ST96",
-  KIA_NIRO_BMS_INFO_01: "220101",
-  KIA_NIRO_BMS_INFO_05: "220105",
-  KIA_NIRO_ABS_INFO: "22C101",
+  HYUNDAI_KONA_BMS_INFO_01: "220101",
+  HYUNDAI_KONA_BMS_INFO_05: "220105",
 };
 
 const COMMAND_LABELS = {
@@ -165,9 +164,8 @@ const COMMAND_LABELS = {
   [COMMANDS.CONTROL_MODULE_VOLTAGE]: "Напруга на ЕБУ",
   [COMMANDS.ENGINE_FUEL_RATE]: "Витрата пального",
   [COMMANDS.EXTENDED_TIMEOUT]: "Збільшити час відповіді",
-  [COMMANDS.KIA_NIRO_BMS_INFO_01]: "Kia Niro інформація з BMS #1",
-  [COMMANDS.KIA_NIRO_BMS_INFO_05]: "Kia Niro інформація з BMS #5",
-  [COMMANDS.KIA_NIRO_ABS_INFO]: "Kia Niro інформація з ABS #1",
+  [COMMANDS.HYUNDAI_KONA_BMS_INFO_01]: "Hyundai Kona інформація з BMS #1",
+  [COMMANDS.HYUNDAI_KONA_BMS_INFO_05]: "Hyundai Kona інформація з BMS #5",
 };
 
 const commandsContainer = document.querySelector("#commands");
@@ -193,9 +191,8 @@ const handlers = {
   [COMMANDS.FUEL_TANK_LEVEL]: parseFuelTankLevel,
   [COMMANDS.ENGINE_FUEL_RATE]: parseEngineFuelRate,
   [COMMANDS.CONTROL_MODULE_VOLTAGE]: parseControlModuleVoltage,
-  [COMMANDS.KIA_NIRO_BMS_INFO_01]: parseKiaNiroBmsInfo01,
-  [COMMANDS.KIA_NIRO_BMS_INFO_05]: parseKiaNiroBmsInfo05,
-  [COMMANDS.KIA_NIRO_ABS_INFO]: parseKiaNiroAbsInfo,
+  [COMMANDS.HYUNDAI_KONA_BMS_INFO_01]: parseHyundaiKonaBmsInfo01,
+  [COMMANDS.HYUNDAI_KONA_BMS_INFO_05]: parseHyundaiKonaBmsInfo05,
 };
 
 function parseResponse(value) {
@@ -230,7 +227,7 @@ function parseMonitorStatusSinceDtcsCleared(value) {
 ${numberOfConfirmedEmissionsRelatedDtcs}`,
     "info"
   );
-  // TODO: Parse rest oof the data
+  // TODO: Parse rest of the data
 
   return numberOfConfirmedEmissionsRelatedDtcs;
 }
@@ -427,7 +424,7 @@ function parseBmsInfoBuffer(buffer) {
 }
 
 let bmsInfoBuffer01 = [];
-function parseKiaNiroBmsInfo01(value) {
+function parseHyundaiKonaBmsInfo01(value) {
   if (value.includes(">")) {
     const separatePacketBytes = parseBmsInfoBuffer(bmsInfoBuffer01);
 
@@ -436,7 +433,7 @@ function parseKiaNiroBmsInfo01(value) {
     if (separatePacketBytes.length !== 8) {
       bmsInfoBuffer01 = [];
       log(
-        `Помилка при отриманні інформації з BMS #1 Kia Niro - неправильна кількість пакетів: ${separatePacketBytes.length}.`
+        `Помилка при отриманні інформації з BMS #1 Hyundai Kona - неправильна кількість пакетів: ${separatePacketBytes.length}.`
       );
       return "<parseKiaNiroBmsInfo error>";
     }
@@ -461,7 +458,7 @@ function parseKiaNiroBmsInfo01(value) {
     const maxCellVoltageValue = (unsignedIntFromBytes(separatePacketBytes[2][6]) * 2) / 100;
     const minCellVoltageValue = (unsignedIntFromBytes(separatePacketBytes[3][1]) * 2) / 100;
 
-    log(`Інформація з BMS #1 Kia Niro:`, "info");
+    log(`Інформація з BMS #1 Hyundai Kona:`, "info");
     log(`- рівень заряду: ${socValue} %`, "info");
     log(`- доступна потужність рекуперації: ${maxRegenValue} кВт`, "info");
     log(`- доступна потужність: ${maxPowerValue} кВт`, "info");
@@ -489,25 +486,16 @@ function parseKiaNiroBmsInfo01(value) {
 }
 
 let bmsInfoBuffer05 = [];
-function parseKiaNiroBmsInfo05(value) {
+function parseHyundaiKonaBmsInfo05(value) {
   console.log(bmsInfoBuffer05);
   if (value.includes(">")) {
-    console.log(bmsInfoBuffer05);
-
     const separatePacketBytes = parseBmsInfoBuffer(bmsInfoBuffer05);
 
-    console.table(separatePacketBytes);
+    const heaterTemp = signedIntFromBytes(separatePacketBytes[2][6]);
 
-    console.table(separatePacketBytes);
+    const sohValue = unsignedIntFromBytes([separatePacketBytes[3][1], separatePacketBytes[3][2]]) / 10;
 
-    const heaterTemp = parseSignedByte(separatePacketBytes[2][6]);
-
-    const sohByteA = separatePacketBytes[3][1];
-    const sohByteB = separatePacketBytes[3][2];
-
-    const sohValue = unsignedIntFromBytes([sohByteA, sohByteB]) / 10;
-
-    log(`Інформація з BMS #5 Kia Niro:`, "info");
+    log(`Інформація з BMS #5 Hyundai Kona:`, "info");
     log(`- здоров'я акумулятора (SOH): ${sohValue} %`, "info");
     log(`- температура обігрівача акумулятора: ${heaterTemp} °C`, "info");
 
