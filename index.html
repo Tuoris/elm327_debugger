@@ -5,11 +5,17 @@
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0" />
     <title>ELM 327 Bluetooth додаток</title>
     <meta name="description" content="Перші кроки по комунікації ELM 327 з Web Bluetooth" />
-    <link rel="stylesheet" href="style.css?v=0.8.0" />
+    <link rel="stylesheet" href="style.css" />
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/i18next/24.2.1/i18next.min.js"
+      integrity="sha512-IG0CninltS3ASFOjOdlSGR++diD7at3wksZiICjGklFfI5JVxjxBhmnpb5QAkPrGRimyIWL1FiOF3j5YT6jF4A=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
   </head>
 
   <body>
-    <h1>ELM 327 Bluetooth додаток <small>ver. 0.8.0</small></h1>
+    <h1>ELM 327 Bluetooth додаток <small>ver. 0.9.0</small></h1>
     <button id="requestDevice">З'єднатись з ELM 327</button>
 
     <pre id="logs"></pre>
@@ -20,6 +26,9 @@
     </form>
     <div id="commands"></div>
   </body>
-  <script src="utils.js?v=0.8.0"></script>
-  <script src="main.js?v=0.8.0"></script>
+  <script>
+    const APP_LANGUAGE = "uk";
+  </script>
+  <script src="utils.js"></script>
+  <script src="main.js"></script>
 </html>

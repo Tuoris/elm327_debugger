@@ -1,15 +1,4 @@
-const CONFIGS = [
-  {
-    name: "Блакитний клон ELM 327",
-    serviceUuid: "0000fff0-0000-1000-8000-00805f9b34fb",
-    characteristicUuid: 0xfff1,
-  },
-  {
-    name: "Vgate iCar2 Bluetooth 4.0",
-    serviceUuid: "e7810a71-73ae-499d-8c15-faa9aef0c3f2",
-    characteristicUuid: "bef8d6c9-9c21-4c9e-b632-bd58c1009f9f",
-  },
-];
+let CONFIGS = [];
 
 const logsContainer = document.querySelector("#logs");
 
@@ -22,12 +11,200 @@ function log(string, level = "debug") {
   newLogLine.scrollIntoView();
 }
 
-log(`Натисніть кнопку "З'єднатись з ELM 327" для початку роботи.`, "info");
+i18next
+  .init({
+    lng: APP_LANGUAGE,
+    debug: true,
+    resources: {
+      uk: {
+        translation: {
+          elm327Clone: "Блакитний клон ELM 327",
+          vgateIcar2: "Vgate iCar2 Bluetooth 4.0",
+          pressToStart: `Натисніть кнопку "З'єднатись з ELM 327" для початку роботи.`,
+          requestingAnyElm327Device: "Запит будь-якого пристрою Bluetooth, який підтримує сервіс ELM327...",
+          requestingDevice: `Запит пристрою: {{deviceName}} ({{deviceId}})`,
+          errorDescription: "Помилка: {{error}}",
+          gattServerConnected: "Сервер GATT підключено.",
+          deviceServiceRetrieving: "Отримання сервісу пристрою...",
+          serviceFound: "Сервіс знайдено, отримання характеристики (джерела даних)...",
+          serviceNotSupported: "Сервіс {{serviceUuid}} не підтримується...",
+          deviceDoesNotSupportAnyProfile: "Пристрій не підтримує жодного з профілів комунікації.",
+          characteristicFound: "Знайдено характеристику: {{characteristicUUID}}",
+          creatingSubscription: "Створення підписки на отримання відповідей.",
+          subscriptionCreated: "Підписку створено - готовий до роботи.",
+          valueReceived: "Отримано: {{value}}",
+          attemptToSendCommandFailed: "Спроба надіслати команду: {{data}} - відсутнє підключення.",
+          sendingData: "Надсилання: {{data}}",
+          monitoringStatusAfterFaultCodesClearing: "Статус моніторингу після видалення кодів несправностей",
+          engineCoolantTemperature: "Температура ох. рідини двигуна",
+          engineOilTemperature: "Температура моторної оливи",
+          calculatedEngineLoad: "Розрахункове навантаження двигуна",
+          engineRpm: "Оберти двигуна",
+          speed: "Швидкість",
+          airIntakeTemperature: "Температура повітря на вході",
+          massAirflowSensor: "Датчик масової витрати повітря",
+          fuelLevel: "Рівень палива в баку",
+          ecuVoltage: "Напруга на ЕБУ",
+          fuelConsumption: "Витрата пального",
+          increaseResponseTime: "Збільшити час відповіді",
+          hyundaiKonaBmsInfo1: "Hyundai Kona інформація з BMS #1",
+          hyundaiKonaBmsInfo5: "Hyundai Kona інформація з BMS #5",
+          checkEngineLightOn: 'Лампа "Check Engine" горить',
+          checkEngineLightOff: 'Лампа "Check Engine" не горить',
+          confirmedEmissionsRelatedDtcs:
+            "Кількість підтверджених помилок, пов'язаних з викидами: {{numberOfConfirmedEmissionsRelatedDtcs}}",
+          engineCoolantTemperatureValue: "Температура охолоджувальної рідини двигуна: {{temperatureValue}} °C",
+          vehicleVin: "VIN: {{vinString}}",
+          engineLoad: "Розрахункове навантаження двигуна: {{engineLoadValue}} %",
+          engineOilTemperatureValue: "Температура моторної оливи: {{temperatureValue}} °C",
+          engineRpmValue: "Оберти двигуна: {{rpmValue}} об/хв",
+          vehicleSpeed: "Швидкість: {{speedValue}} км/год",
+          airIntakeTemperatureValue: "Температура повітря на вході: {{temperatureValue}} °C",
+          massAirFlow: "Масова витрата повітря: {{massAirFlowValue}} г/с",
+          fuelTankLevel: "Рівень палива в баку: {{fuelTankLevelValue}} %",
+          ecuVoltageValue: "Напруга на електронному блоці управління: {{voltageValue}} В",
+          fuelConsumptionRate: "Витрата пального: {{rateValue}} л/год",
+          bmsInfoError:
+            "Помилка при отриманні інформації з BMS #1 Hyundai Kona - неправильна кількість пакетів: {{separatePacketBytesLength}}.",
+          bmsInfo1: "Інформація з BMS #1 Hyundai Kona:",
+          bmsInfoSoc: "- рівень заряду: {{socValue}} %",
+          bmsInfoMaxRegen: "- доступна потужність рекуперації: {{maxRegenValue}} кВт",
+          bmsInfoMaxPower: "- доступна потужність: {{maxPowerValue}} кВт",
+          bmsInfoBatteryMaxT: "- температура акумулятора (макс.): {{batteryMaxT}} °C",
+          bmsInfoBatteryMinT: "- температура акумулятора (мін.): {{batteryMinT}} °C",
+          bmsInfoMinCellVoltage: "- мінімальна напруга комірки: {{minCellVoltageValue}} В",
+          bmsInfoMaxCellVoltage: "- максимальна напруга комірки: {{maxCellVoltageValue}} В",
+          bmsInfoDischargePower: "- потужність розряджання акумулятора: {{dischargePowerValue}} кВт",
+          bmsInfoChargePower: "- потужність заряджання акумулятора: {{chargePowerValue}} кВт",
+          bmsInfoDischargeCurrent: "- струм батареї: {{dischargeCurrentValue}} А - розряджання",
+          bmsInfoChargeCurrent: "- струм батареї: {{chargeCurrentValue}} А - заряджання",
+          bmsInfoBatteryVoltage: "- напруга батареї: {{batteryVoltageValue}} В",
+          bmsInfoBattery12VVoltage: "- напруга 12В батареї: {{battery12VVoltage}} В",
+          bmsInfo5: "Інформація з BMS #5 Hyundai Kona:",
+          bmsSoh: "- здоров'я акумулятора (SOH): {{sohValue}} %",
+          bmsHeaterTemp: "- температура обігрівача акумулятора: {{heaterTemp}} °C",
+        },
+      },
+      en: {
+        translation: {
+          elm327Clone: "Blue ELM 327 clone",
+          vgateIcar2: "Vgate iCar2 Bluetooth 4.0",
+          pressToStart: `Click the "Connect to ELM 327" button to begin.`,
+          requestingAnyElm327Device: "Requesting any Bluetooth device that supports the ELM327 service...",
+          requestingDevice: `Requesting device: {{deviceName}} ({{deviceId}})`,
+          errorDescription: `Error: {{error}}`,
+          gattServerConnected: "GATT server connected.",
+          deviceServiceRetrieving: "Retrieving device service...",
+          serviceFound: "Service found, retrieving characteristic (data source)...",
+          serviceNotSupported: "Service {{serviceUuid}} is not supported...",
+          deviceDoesNotSupportAnyProfile: "Device does not support any communication profiles.",
+          characteristicFound: "Found characteristic: {{characteristicUUID}}",
+          creatingSubscription: "Creating subscription for receiving responses.",
+          subscriptionCreated: "Subscription created - ready to work.",
+          valueReceived: "Received: {{value}}",
+          attemptToSendCommandFailed: "Attempt to send command: {{data}} - connection is missing.",
+          sendingData: "Sending: {{data}}",
+          monitoringStatusAfterFaultCodesClearing: "Monitoring status after fault codes clearing",
+          engineCoolantTemperature: "Engine coolant temperature",
+          engineOilTemperature: "Engine oil temperature",
+          calculatedEngineLoad: "Calculated engine load",
+          engineRpm: "Engine RPM",
+          speed: "Speed",
+          airIntakeTemperature: "Air intake temperature",
+          massAirflowSensor: "Mass airflow sensor",
+          fuelLevel: "Fuel level",
+          ecuVoltage: "ECU voltage",
+          fuelConsumption: "Fuel consumption",
+          increaseResponseTime: "Increase response time",
+          hyundaiKonaBmsInfo1: "Hyundai Kona BMS info #1",
+          hyundaiKonaBmsInfo5: "Hyundai Kona BMS info #5",
+          checkEngineLightOn: "Check Engine light is on",
+          checkEngineLightOff: "Check Engine light is off",
+          confirmedEmissionsRelatedDtcs:
+            "Number of confirmed DTCs related to emissions: {{numberOfConfirmedEmissionsRelatedDtcs}}",
+          engineCoolantTemperatureValue: "Engine coolant temperature: {{temperatureValue}} °C",
+          vehicleVin: "VIN: {{vinString}}",
+          engineLoad: "Calculated engine load: {{engineLoadValue}} %",
+          engineOilTemperatureValue: "Engine oil temperature: {{temperatureValue}} °C",
+          engineRpmValue: "Engine RPM: {{rpmValue}}",
+          vehicleSpeed: "Speed: {{speedValue}} km/h",
+          airIntakeTemperatureValue: "Air intake temperature: {{temperatureValue}} °C",
+          massAirFlow: "Mass airflow: {{massAirFlowValue}} g/s",
+          fuelTankLevel: "Fuel tank level: {{fuelTankLevelValue}} %",
+          ecuVoltageValue: "ECU voltage: {{voltageValue}} V",
+          fuelConsumptionRate: "Fuel consumption rate: {{rateValue}} l/h",
+          bmsInfoError:
+            "Error retrieving information from BMS #1 Hyundai Kona - incorrect number of packets: {{separatePacketBytesLength}}.",
+          bmsInfo1: "BMS info #1 Hyundai Kona:",
+          bmsInfoSoc: "- state of charge: {{socValue}} %",
+          bmsInfoMaxRegen: "- available regenerative power: {{maxRegenValue}} kW",
+          bmsInfoMaxPower: "- available power: {{maxPowerValue}} kW",
+          bmsInfoBatteryMaxT: "- battery temperature (max.): {{batteryMaxT}} °C",
+          bmsInfoBatteryMinT: "- battery temperature (min.): {{batteryMinT}} °C",
+          bmsInfoMinCellVoltage: "- minimum cell voltage: {{minCellVoltageValue}} V",
+          bmsInfoMaxCellVoltage: "- maximum cell voltage: {{maxCellVoltageValue}} V",
+          bmsInfoDischargePower: "- battery discharge power: {{dischargePowerValue}} kW",
+          bmsInfoChargePower: "- battery charge power: {{chargePowerValue}} kW",
+          bmsInfoDischargeCurrent: "- battery current: {{dischargeCurrentValue}} A - discharging",
+          bmsInfoChargeCurrent: "- battery current: {{chargeCurrentValue}} A - charging",
+          bmsInfoBatteryVoltage: "- battery voltage: {{batteryVoltageValue}} V",
+          bmsInfoBattery12VVoltage: "- 12V battery voltage: {{battery12VVoltage}} V",
+          bmsInfo5: "BMS info #5 Hyundai Kona:",
+          bmsSoh: "- battery state of health (SOH): {{sohValue}} %",
+          bmsHeaterTemp: "- battery heater temperature: {{heaterTemp}} °C",
+        },
+      },
+    },
+  })
+  .then(function (t) {
+    log(t("pressToStart"), "info");
+
+    CONFIGS = [
+      {
+        name: i18next.t("elm327Clone"),
+        serviceUuid: "0000fff0-0000-1000-8000-00805f9b34fb",
+        characteristicUuid: 0xfff1,
+      },
+      {
+        name: i18next.t("vgateIcar2"),
+        serviceUuid: "e7810a71-73ae-499d-8c15-faa9aef0c3f2",
+        characteristicUuid: "bef8d6c9-9c21-4c9e-b632-bd58c1009f9f",
+      },
+    ];
+
+    COMMAND_LABELS = {
+      [COMMANDS.VIN]: "VIN",
+      [COMMANDS.MONITOR_STATUS_SINCE_DTCS_CLEARED]: i18next.t("monitoringStatusAfterFaultCodesClearing"),
+      [COMMANDS.ENGINE_COOLANT_TEMPERATURE]: i18next.t("engineCoolantTemperature"),
+      [COMMANDS.ENGINE_OIL_TEMPERATURE]: i18next.t("engineOilTemperature"),
+      [COMMANDS.CALCULATED_ENGINE_LOAD]: i18next.t("calculatedEngineLoad"),
+      [COMMANDS.ENGINE_SPEED]: i18next.t("engineRpm"),
+      [COMMANDS.VEHICLE_SPEED]: i18next.t("speed"),
+      [COMMANDS.INTAKE_AIR_TEMPERATURE]: i18next.t("airIntakeTemperature"),
+      [COMMANDS.MASS_AIR_FLOW_SENSOR]: i18next.t("massAirflowSensor"),
+      [COMMANDS.FUEL_TANK_LEVEL]: i18next.t("fuelLevel"),
+      [COMMANDS.CONTROL_MODULE_VOLTAGE]: i18next.t("ecuVoltage"),
+      [COMMANDS.ENGINE_FUEL_RATE]: i18next.t("fuelConsumption"),
+      [COMMANDS.EXTENDED_TIMEOUT]: i18next.t("increaseResponseTime"),
+      [COMMANDS.HYUNDAI_KONA_BMS_INFO_01]: i18next.t("hyundaiKonaBmsInfo1"),
+      [COMMANDS.HYUNDAI_KONA_BMS_INFO_05]: i18next.t("hyundaiKonaBmsInfo5"),
+    };
+
+    const commandsContainer = document.querySelector("#commands");
+    commandsContainer.innerHTML = "";
+    for (const command of Object.values(COMMANDS)) {
+      const commandButton = document.createElement("button");
+      commandButton.addEventListener("click", () => sendData(command));
+      commandButton.innerText = `${COMMAND_LABELS[command] ?? "Unknown command"} (${command})`;
+
+      commandsContainer.appendChild(commandButton);
+    }
+  });
 
 let selectedDevice = null;
 
 async function onRequestBluetoothDeviceButtonClick() {
-  log("Запит будь-якого пристрою Bluetooth, який підтримує сервіс ELM327...");
+  log(i18next.t("requestingAnyElm327Device"));
 
   try {
     const device = await navigator.bluetooth.requestDevice({
@@ -35,11 +212,11 @@ async function onRequestBluetoothDeviceButtonClick() {
       optionalServices: CONFIGS.map((config) => config.serviceUuid),
     });
 
-    log(`Запит пристрою: ${device.name} (${device.id})`);
+    log(i18next.t("requestingDevice", { deviceName: device.name, deviceId: device.id }));
     selectedDevice = device;
     connectAndSetupBluetoothScanner();
   } catch (error) {
-    log(`Помилка: ${error}`, "error");
+    log(i18next.t("errorDescription", { error }), "error");
   }
 }
 
@@ -54,8 +231,8 @@ async function connectAndSetupBluetoothScanner() {
   }
 
   const server = await selectedDevice.gatt.connect();
-  log("Сервер GATT підключено.");
-  log("Отримання сервісу пристрою...");
+  log(i18next.t("gattServerConnected"));
+  log(i18next.t("deviceServiceRetrieving"));
 
   let service;
   let serviceIndex;
@@ -63,25 +240,25 @@ async function connectAndSetupBluetoothScanner() {
     try {
       service = await server.getPrimaryService(config.serviceUuid);
       serviceIndex = index;
-      log("Сервіс знайдено, отримання характеристики (джерела даних)...");
+      log(i18next.t("serviceFound"));
     } catch {
-      log(`Сервіс ${config.serviceUuid} не підтримується...`);
+      log(i18next.t("serviceNotSupported", { serviceUuid: config.serviceUuid }));
     }
   }
 
   if (!service) {
-    log("Пристрій не підтримує жодного з профілів комунікації.", "error");
+    log(i18next.t("deviceDoesNotSupportAnyProfile"), "error");
     return;
   }
 
   const characteristicUUID = CONFIGS[serviceIndex].characteristicUuid;
   const characteristic = await service.getCharacteristic(characteristicUUID);
 
-  log(`Знайдено характеристику: ${characteristicUUID}`);
+  log(i18next.t("characteristicFound", { characteristicUUID }));
   writeCharacteristic = characteristic;
 
   await writeCharacteristic.startNotifications();
-  log("Створення підписки на отримання відповідей.");
+  log(i18next.t("creatingSubscription"));
   writeCharacteristic.addEventListener("characteristicvaluechanged", (event) => {
     const rawValue = event.currentTarget.value;
     receiveValue(rawValue);
@@ -90,14 +267,14 @@ async function connectAndSetupBluetoothScanner() {
   await sendData("ATZ");
   await sendData("0100");
 
-  log("Підписку створено - готовий до роботи.");
+  log(i18next.t("subscriptionCreated"));
 }
 
 function receiveValue(rawValue) {
   const rawBytes = Array.from(new Int8Array(rawValue.buffer)).map((n) => n.toString(16).padStart(2, "0"));
   console.log(`Raw bytes: ${rawBytes.join(" ")}`);
   const value = new TextDecoder().decode(rawValue).trim();
-  log(`Отримано: ${value}`);
+  log(i18next.t("valueReceived", { value, interpolation: { escapeValue: false } }));
   const result = parseResponse(value);
   if (result) {
     commandSignals.sendSignal.resolve(result);
@@ -108,14 +285,14 @@ let currentCommand = "";
 
 const sendData = (data) => {
   if (!writeCharacteristic) {
-    log(`Спроба надіслати команду: ${data} - відсутнє підключення.`, "error");
+    log(i18next.t("attemptToSendCommandFailed", { data }), "error");
     return;
   }
 
   commandSignals.sendSignal = new Deferred();
 
   if (data) {
-    log(`Надсилання: ${data}`);
+    log(i18next.t("sendingData", { data }));
     writeCharacteristic.writeValue(new TextEncoder().encode(data + "\r"));
     currentCommand = data.trim();
   }
@@ -150,33 +327,7 @@ const COMMANDS = {
   HYUNDAI_KONA_BMS_INFO_05: "220105",
 };
 
-const COMMAND_LABELS = {
-  [COMMANDS.VIN]: "VIN",
-  [COMMANDS.MONITOR_STATUS_SINCE_DTCS_CLEARED]: "Статус моніторингу після видалення кодів несправностей",
-  [COMMANDS.ENGINE_COOLANT_TEMPERATURE]: "Температура ох. рідини двигуна",
-  [COMMANDS.ENGINE_OIL_TEMPERATURE]: "Температура моторної оливи",
-  [COMMANDS.CALCULATED_ENGINE_LOAD]: "Розрахункове навантаження двигуна",
-  [COMMANDS.ENGINE_SPEED]: "Оберти двигуна",
-  [COMMANDS.VEHICLE_SPEED]: "Швидкість",
-  [COMMANDS.INTAKE_AIR_TEMPERATURE]: "Температура повітря на вході",
-  [COMMANDS.MASS_AIR_FLOW_SENSOR]: "Датчик масової витрати повітря",
-  [COMMANDS.FUEL_TANK_LEVEL]: "Рівень палива в баку",
-  [COMMANDS.CONTROL_MODULE_VOLTAGE]: "Напруга на ЕБУ",
-  [COMMANDS.ENGINE_FUEL_RATE]: "Витрата пального",
-  [COMMANDS.EXTENDED_TIMEOUT]: "Збільшити час відповіді",
-  [COMMANDS.HYUNDAI_KONA_BMS_INFO_01]: "Hyundai Kona інформація з BMS #1",
-  [COMMANDS.HYUNDAI_KONA_BMS_INFO_05]: "Hyundai Kona інформація з BMS #5",
-};
-
-const commandsContainer = document.querySelector("#commands");
-commandsContainer.innerHTML = "";
-for (const command of Object.values(COMMANDS)) {
-  const commandButton = document.createElement("button");
-  commandButton.addEventListener("click", () => sendData(command));
-  commandButton.innerText = `${COMMAND_LABELS[command] ?? "Unknown command"} (${command})`;
-
-  commandsContainer.appendChild(commandButton);
-}
+let COMMAND_LABELS = {};
 
 const handlers = {
   [COMMANDS.VIN]: parseVINResponse,
@@ -221,12 +372,8 @@ function parseMonitorStatusSinceDtcsCleared(value) {
   const checkEngineLightOn = byteABits[0] === "1";
   const numberOfConfirmedEmissionsRelatedDtcs = parseInt(byteABits.slice(1), 2);
 
-  log(`Лампа "Check Engine" ${checkEngineLightOn ? "горить" : "не горить"}.`, "info");
-  log(
-    `Кількість підтверджених DTC, пов'язаних з викидами:
-${numberOfConfirmedEmissionsRelatedDtcs}`,
-    "info"
-  );
+  log(i18next.t(checkEngineLightOn ? "checkEngineLightOn" : "checkEngineLightOff"), "info");
+  log(i18next.t("confirmedEmissionsRelatedDtcs", { numberOfConfirmedEmissionsRelatedDtcs }), "info");
   // TODO: Parse rest of the data
 
   return numberOfConfirmedEmissionsRelatedDtcs;
@@ -243,7 +390,7 @@ function parseEngineCoolantTemperature(value) {
   const temperatureByte = separateBytes[2];
   const temperatureValue = unsignedIntFromBytes(temperatureByte) - 40;
 
-  log(`Температура охолоджувальної рідини двигуна: ${temperatureValue} °C`, "info");
+  log(i18next.t("engineCoolantTemperatureValue", { temperatureValue: temperatureValue }), "info");
 
   return temperatureValue;
 }
@@ -277,7 +424,7 @@ function parseVINResponse(value) {
 
   const vinString = dataBytes.map((byte) => String.fromCharCode(parseInt(byte, 16))).join("");
 
-  log(`VIN: ${vinString}`, "info");
+  log(i18next.t("vehicleVin", { vinString: vinString }), "info");
 
   vinBuffer = [];
   return vinString;
@@ -292,7 +439,7 @@ function parseCalculatedEngineLoadResponse(value) {
   const engineLoadByte = separateBytes[2];
   const engineLoadValue = unsignedIntFromBytes(engineLoadByte) / 2.55;
 
-  log(`Розрахункове навантаження двигуна: ${engineLoadValue} %`, "info");
+  log(i18next.t("engineLoad", { engineLoadValue: engineLoadValue }), "info");
 
   return engineLoadValue;
 }
@@ -306,7 +453,7 @@ function parseEngineOilTemperature(value) {
   const temperatureByte = separateBytes[2];
   const temperatureValue = unsignedIntFromBytes(temperatureByte) - 40;
 
-  log(`Температура моторної оливи: ${temperatureValue} °C`, "info");
+  log(i18next.t("engineOilTemperatureValue", { temperatureValue }), "info");
 
   return temperatureValue;
 }
@@ -321,7 +468,7 @@ function parseEngineSpeed(value) {
   const rpmByteB = separateBytes[3];
   const rpmValue = unsignedIntFromBytes([rpmByteA, rpmByteB]) / 4;
 
-  log(`Оберти двигуна: ${rpmValue} об/хв`, "info");
+  log(i18next.t("engineRpmValue", { rpmValue }), "info");
 
   return rpmValue;
 }
@@ -335,7 +482,7 @@ function parseVehicleSpeed(value) {
   const speedByte = separateBytes[2];
   const speedValue = unsignedIntFromBytes(speedByte);
 
-  log(`Швидкість: ${speedValue} км/год`, "info");
+  log(i18next.t("vehicleSpeed", { speedValue: speedValue }), "info");
 
   return speedValue;
 }
@@ -349,7 +496,7 @@ function parseIntakeAirTemperature(value) {
   const temperatureByte = separateBytes[2];
   const temperatureValue = unsignedIntFromBytes(temperatureByte) - 40;
 
-  log(`Температура повітря на вході: ${temperatureValue} °C`, "info");
+  log(i18next.t("airIntakeTemperatureValue", { temperatureValue: temperatureValue }), "info");
 
   return temperatureValue;
 }
@@ -364,7 +511,7 @@ function parseMassAirFlowSensorValue(value) {
   const massAirFlowB = separateBytes[3];
   const massAirFlowValue = unsignedIntFromBytes([massAirFlowA, massAirFlowB]) / 100;
 
-  log(`Масова витрата повітря: ${massAirFlowValue.toFixed(2)} г/c`, "info");
+  log(i18next.t("massAirFlow", { massAirFlowValue: massAirFlowValue.toFixed(2) }), "info");
 
   return massAirFlowValue;
 }
@@ -378,7 +525,7 @@ function parseFuelTankLevel(value) {
   const fuelTankLevelByte = separateBytes[2];
   const fuelTankLevelValue = (100 / 255) * unsignedIntFromBytes(fuelTankLevelByte);
 
-  log(`Рівень палива в баку: ${fuelTankLevelValue.toFixed(2)} %`, "info");
+  log(i18next.t("fuelTankLevel", { fuelTankLevelValue: fuelTankLevelValue.toFixed(2) }), "info");
 
   return fuelTankLevelValue;
 }
@@ -393,7 +540,7 @@ function parseControlModuleVoltage(value) {
   const voltageByteB = separateBytes[3];
   const voltageValue = unsignedIntFromBytes([voltageByteA, voltageByteB]) / 1000;
 
-  log(`Напруга на електронному блоці управління: ${voltageValue.toFixed(2)} В`, "info");
+  log(i18next.t("ecuVoltageValue", { voltageValue: voltageValue.toFixed(2) }), "info");
 
   return voltageValue;
 }
@@ -408,7 +555,7 @@ function parseEngineFuelRate(value) {
   const rateByteB = separateBytes[3];
   const rateValue = unsignedIntFromBytes([rateByteA, rateByteB]) / 20;
 
-  log(`Витрата пального: ${rateValue.toFixed(2)} л/год`, "info");
+  log(i18next.t("fuelConsumptionRate", { rateValue: rateValue.toFixed(2) }), "info");
 
   return rateValue;
 }
@@ -432,9 +579,7 @@ function parseHyundaiKonaBmsInfo01(value) {
 
     if (separatePacketBytes.length !== 8) {
       bmsInfoBuffer01 = [];
-      log(
-        `Помилка при отриманні інформації з BMS #1 Hyundai Kona - неправильна кількість пакетів: ${separatePacketBytes.length}.`
-      );
+      log(i18next.t("bmsInfoError", { separatePacketBytesLength: separatePacketBytes.length }));
       return "<parseKiaNiroBmsInfo error>";
     }
 
@@ -458,26 +603,28 @@ function parseHyundaiKonaBmsInfo01(value) {
     const maxCellVoltageValue = (unsignedIntFromBytes(separatePacketBytes[2][6]) * 2) / 100;
     const minCellVoltageValue = (unsignedIntFromBytes(separatePacketBytes[3][1]) * 2) / 100;
 
-    log(`Інформація з BMS #1 Hyundai Kona:`, "info");
-    log(`- рівень заряду: ${socValue} %`, "info");
-    log(`- доступна потужність рекуперації: ${maxRegenValue} кВт`, "info");
-    log(`- доступна потужність: ${maxPowerValue} кВт`, "info");
-    log(`- температура акумулятора (макс.): ${batteryMaxT} °C`, "info");
-    log(`- температура акумулятора (мін.): ${batteryMinT} °C`, "info");
-    log(`- мінімальна напруга комірки: ${maxCellVoltageValue} В`, "info");
-    log(`- максимальна напруга комірки: ${minCellVoltageValue} В`, "info");
+    log(i18next.t("bmsInfo1"), "info");
+    log(i18next.t("bmsInfoSoc", { socValue: socValue }), "info");
+    log(i18next.t("bmsInfoMaxRegen", { maxRegenValue: maxRegenValue }), "info");
+    log(i18next.t("bmsInfoMaxPower", { maxPowerValue: maxPowerValue }), "info");
+    log(i18next.t("bmsInfoBatteryMaxT", { batteryMaxT: batteryMaxT }), "info");
+    log(i18next.t("bmsInfoBatteryMinT", { batteryMinT: batteryMinT }), "info");
+    log(i18next.t("bmsInfoMinCellVoltage", { minCellVoltageValue: minCellVoltageValue }), "info");
+    log(i18next.t("bmsInfoMaxCellVoltage", { maxCellVoltageValue: maxCellVoltageValue }), "info");
     log(
-      `- потужність ${batteryPower > 0 ? "розряджання" : "заряджання"} акумулятора: ${
-        Math.abs(batteryPower) / 1000
-      } кВт`,
+      batteryPower > 0
+        ? i18next.t("bmsInfoDischargePower", { dischargePowerValue: Math.abs(batteryPower) / 1000 })
+        : i18next.t("bmsInfoChargePower", { chargePowerValue: Math.abs(batteryPower) / 1000 }),
       "info"
     );
     log(
-      `- струм батареї: ${batteryCurrentValue} А / ${batteryCurrentValue > 0 ? "розряджання" : "заряджання"}`,
+      batteryCurrentValue > 0
+        ? i18next.t("bmsInfoDischargeCurrent", { dischargeCurrentValue: batteryCurrentValue })
+        : i18next.t("bmsInfoChargeCurrent", { chargeCurrentValue: batteryCurrentValue }),
       "info"
     );
-    log(`- напруга батареї: ${batteryVoltageValue} В`, "info");
-    log(`- напруга 12В батареї: ${battery12VVoltage} В`, "info");
+    log(i18next.t("bmsInfoBatteryVoltage", { batteryVoltageValue: batteryVoltageValue }), "info");
+    log(i18next.t("bmsInfoBattery12VVoltage", { battery12VVoltage: battery12VVoltage }), "info");
 
     bmsInfoBuffer01 = [];
   }
@@ -495,9 +642,9 @@ function parseHyundaiKonaBmsInfo05(value) {
 
     const sohValue = unsignedIntFromBytes([separatePacketBytes[3][1], separatePacketBytes[3][2]]) / 10;
 
-    log(`Інформація з BMS #5 Hyundai Kona:`, "info");
-    log(`- здоров'я акумулятора (SOH): ${sohValue} %`, "info");
-    log(`- температура обігрівача акумулятора: ${heaterTemp} °C`, "info");
+    log(i18next.t("bmsInfo5"), "info");
+    log(i18next.t("bmsSoh", { sohValue: sohValue }), "info");
+    log(i18next.t("bmsHeaterTemp", { heaterTemp: heaterTemp }), "info");
 
     bmsInfoBuffer05 = [];
   }

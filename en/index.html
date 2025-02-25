@@ -1,27 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0" />
     <title>ELM 327 Bluetooth app</title>
-    <meta name="description" content="Communicate with ELM 327 via Web Bluetooth API">
-    <link rel="stylesheet" href="../style.css?v=0.7.0">
-</head>
+    <meta name="description" content="Communicate with ELM 327 via Web Bluetooth API" />
+    <link rel="stylesheet" href="../style.css" />
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/i18next/24.2.1/i18next.min.js"
+      integrity="sha512-IG0CninltS3ASFOjOdlSGR++diD7at3wksZiICjGklFfI5JVxjxBhmnpb5QAkPrGRimyIWL1FiOF3j5YT6jF4A=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+  </head>
 
-<body>
-    <h1>ELM 327 Bluetooth app <small>ver. 0.7.0</small></h1>
+  <body>
+    <h1>ELM 327 Bluetooth app <small>ver. 0.9.0</small></h1>
     <button id="requestDevice">Connect to ELM 327</button>
 
     <pre id="logs"></pre>
 
     <form id="submitForm">
-        <input type="text" name="dataToSent" placeholder="Enter commands here or select from predefined set below">
-        <button type="submit">Send</button>
+      <input type="text" name="dataToSent" placeholder="Enter commands here or select from predefined set below" />
+      <button type="submit">Send</button>
     </form>
-    <div id="commands">
-    </div>
-</body>
-<script src="./main.js?v=0.7.0"></script>
-
+    <div id="commands"></div>
+  </body>
+  <script>
+    const APP_LANGUAGE = "en";
+  </script>
+  <script src="../utils.js"></script>
+  <script src="../main.js"></script>
 </html>
