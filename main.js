@@ -34,6 +34,9 @@ i18next
           subscriptionCreated: "Підписку створено - готовий до роботи.",
           valueReceived: "Отримано: {{value}}",
           attemptToSendCommandFailed: "Спроба надіслати команду: {{data}} - відсутнє підключення.",
+          waitingForPreviousCommand: "Очікую на відповідь на попередню команду...",
+          previousCommandTimeout:
+            "Відповідь від попередньої команди не отримано протягом 1 секунди - її буде скасовано!",
           sendingData: "Надсилання: {{data}}",
           monitoringStatusAfterFaultCodesClearing: "Статус моніторингу після видалення кодів несправностей",
           engineCoolantTemperature: "Температура ох. рідини двигуна",
@@ -103,6 +106,9 @@ i18next
           subscriptionCreated: "Subscription created - ready to work.",
           valueReceived: "Received: {{value}}",
           attemptToSendCommandFailed: "Attempt to send command: {{data}} - connection is missing.",
+          waitingForPreviousCommand: "Waiting response from previous command...",
+          previousCommandTimeout:
+            "Response from previous command is not received in 1 second, previous command will be discarded!",
           sendingData: "Sending: {{data}}",
           monitoringStatusAfterFaultCodesClearing: "Monitoring status after fault codes clearing",
           engineCoolantTemperature: "Engine coolant temperature",
@@ -223,7 +229,7 @@ async function onRequestBluetoothDeviceButtonClick() {
 document.querySelector("#requestDevice").addEventListener("click", onRequestBluetoothDeviceButtonClick);
 
 let writeCharacteristic = null;
-const commandSignals = {};
+let responseResolve = null;
 
 async function connectAndSetupBluetoothScanner() {
   if (!selectedDevice) {
@@ -264,40 +270,66 @@ async function connectAndSetupBluetoothScanner() {
     receiveValue(rawValue);
   });
 
-  await sendData("ATZ");
+  await sendData("AT WS");
   await sendData("0100");
 
   log(i18next.t("subscriptionCreated"));
 }
+
+let receiveBuffer = "";
+let pendingCommandPromise = null;
+let isPendingCommand = false;
 
 function receiveValue(rawValue) {
   const rawBytes = Array.from(new Int8Array(rawValue.buffer)).map((n) => n.toString(16).padStart(2, "0"));
   console.log(`Raw bytes: ${rawBytes.join(" ")}`);
   const value = new TextDecoder().decode(rawValue).trim();
   log(i18next.t("valueReceived", { value, interpolation: { escapeValue: false } }));
-  const result = parseResponse(value);
-  if (result) {
-    commandSignals.sendSignal.resolve(result);
+
+  receiveBuffer += value;
+
+  if (value.includes(">")) {
+    console.timeEnd(currentCommand);
+    const result = parseResponse(receiveBuffer);
+    responseResolve(result);
+
+    receiveBuffer = "";
+    isPendingCommand = false;
   }
 }
 
 let currentCommand = "";
 
-const sendData = (data) => {
+const sendData = async (data) => {
   if (!writeCharacteristic) {
     log(i18next.t("attemptToSendCommandFailed", { data }), "error");
     return;
   }
 
-  commandSignals.sendSignal = new Deferred();
+  console.time(`${data.trim()}`);
+
+  if (isPendingCommand && pendingCommandPromise) {
+    log(i18next.t("waitingForPreviousCommand"));
+    const timeout = setTimeout(() => {
+      log(i18next.t("previousCommandTimeout"), "error");
+      responseResolve(null);
+    }, 1000);
+    await pendingCommandPromise;
+    clearTimeout(timeout);
+  }
 
   if (data) {
     log(i18next.t("sendingData", { data }));
     writeCharacteristic.writeValue(new TextEncoder().encode(data + "\r"));
+    isPendingCommand = true;
     currentCommand = data.trim();
   }
 
-  return commandSignals.sendSignal.promise;
+  pendingCommandPromise = new Promise((resolve) => {
+    responseResolve = resolve;
+  });
+
+  return pendingCommandPromise;
 };
 
 const submitForm = document.querySelector("#submitForm");
@@ -349,7 +381,8 @@ const handlers = {
 function parseResponse(value) {
   const handler = handlers[currentCommand];
   if (handler) {
-    return handler(value);
+    const adaptedValue = adaptValueForCommand(value, currentCommand);
+    return handler(adaptedValue);
   }
 
   return defaultHandler(value);
@@ -361,6 +394,34 @@ function defaultHandler(value) {
   }
 }
 
+function adaptValueForCommand(value, currentCommand) {
+  let adaptedValue = value;
+
+  if (!(currentCommand.startsWith("01") || currentCommand.startsWith("09"))) {
+    return adaptedValue;
+  }
+
+  adaptedValue = value.replaceAll(/\s/g, "").replaceAll(">", "");
+
+  const commandResponseSuccessHeader = currentCommand.replaceAll(/\s/g, "").replace(/^01/, "41").replace(/^09/, "49");
+
+  console.log(adaptedValue, commandResponseSuccessHeader);
+
+  if (!adaptedValue.includes(commandResponseSuccessHeader)) {
+    return `<Invalid response> ${value}`;
+  }
+
+  const startDataIndex = adaptedValue.indexOf(commandResponseSuccessHeader);
+  const dataSlice = adaptedValue.slice(startDataIndex);
+  const chunks = [];
+  for (let index = 0; index < Math.ceil(dataSlice.length / 2); index++) {
+    const currentSlice = dataSlice.slice(index * 2, (index + 1) * 2);
+    chunks.push(currentSlice);
+  }
+
+  return chunks.join(" ");
+}
+
 function parseMonitorStatusSinceDtcsCleared(value) {
   if (!value.startsWith("41 01")) {
     return;
@@ -368,7 +429,7 @@ function parseMonitorStatusSinceDtcsCleared(value) {
 
   const separateBytes = value.trim().split(" ");
   const byteA = separateBytes[2];
-  const byteABits = unsignedIntFromBytes(byteA).toString(2);
+  const byteABits = unsignedIntFromBytes(byteA).toString(2).padStart(8, "0");
   const checkEngineLightOn = byteABits[0] === "1";
   const numberOfConfirmedEmissionsRelatedDtcs = parseInt(byteABits.slice(1), 2);
 
@@ -439,7 +500,7 @@ function parseCalculatedEngineLoadResponse(value) {
   const engineLoadByte = separateBytes[2];
   const engineLoadValue = unsignedIntFromBytes(engineLoadByte) / 2.55;
 
-  log(i18next.t("engineLoad", { engineLoadValue: engineLoadValue }), "info");
+  log(i18next.t("engineLoad", { engineLoadValue: engineLoadValue.toFixed(2) }), "info");
 
   return engineLoadValue;
 }
