@@ -271,6 +271,10 @@ async function connectAndSetupBluetoothScanner() {
   });
 
   await sendData("AT WS");
+  await sendData("AT E0");
+  await sendData("AT L0");
+  await sendData("AT AL");
+  await sendData("AT AT1");
   await sendData("0100");
 
   log(i18next.t("subscriptionCreated"));
