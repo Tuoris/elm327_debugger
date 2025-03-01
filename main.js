@@ -75,6 +75,7 @@ i18next
           bmsInfoMaxPower: "- доступна потужність: {{maxPowerValue}} кВт",
           bmsInfoBatteryMaxT: "- температура акумулятора (макс.): {{batteryMaxT}} °C",
           bmsInfoBatteryMinT: "- температура акумулятора (мін.): {{batteryMinT}} °C",
+          bmsInfoBatteryInletT: "- температура охолоджувальної рідини акумулятора: {{batteryInletT}} °C",
           bmsInfoMinCellVoltage: "- мінімальна напруга комірки: {{minCellVoltageValue}} В",
           bmsInfoMaxCellVoltage: "- максимальна напруга комірки: {{maxCellVoltageValue}} В",
           bmsInfoDischargePower: "- потужність розряджання акумулятора: {{dischargePowerValue}} кВт",
@@ -147,6 +148,7 @@ i18next
           bmsInfoMaxPower: "- available power: {{maxPowerValue}} kW",
           bmsInfoBatteryMaxT: "- battery temperature (max.): {{batteryMaxT}} °C",
           bmsInfoBatteryMinT: "- battery temperature (min.): {{batteryMinT}} °C",
+          bmsInfoBatteryInletT: "- battery inlet (cooling liquid) temperature: {{batteryInletT}} °C",
           bmsInfoMinCellVoltage: "- minimum cell voltage: {{minCellVoltageValue}} V",
           bmsInfoMaxCellVoltage: "- maximum cell voltage: {{maxCellVoltageValue}} V",
           bmsInfoDischargePower: "- battery discharge power: {{dischargePowerValue}} kW",
@@ -626,7 +628,7 @@ function parseEngineFuelRate(value) {
 }
 
 function parseBmsInfoBuffer(buffer) {
-  const joinedBuffer = buffer.join("").replaceAll("\n", "");
+  const joinedBuffer = buffer.replaceAll("\n", "");
 
   const numberedPackets = Array.from(joinedBuffer.matchAll(/\d\:(\s[0-9A-F][0-9A-F]){7}/gm).map((match) => match[0]));
 
@@ -635,84 +637,101 @@ function parseBmsInfoBuffer(buffer) {
   return packets;
 }
 
-let bmsInfoBuffer01 = [];
+const sampleBmsInfo01 = `7F 22 12
+7F 22 12 
+03E 
+0: 62 01 01 FF F7 E7 
+7F 22 12 
+1: FF 41 3E 1C 37 42 83
+2: FB D9 0E 45 05 05 05
+3: 05 05 05 00 00 16 BA
+4: 0A BA 32 00 00 92 00
+5: 06 BD 4A 00 06 A1 DD
+6: 00 02 8C FE 00 02 70
+7: C7 01 35 88 93 09 01
+8: 6F 00 00 00 00 03 E8
+>`;
+
 function parseHyundaiKonaBmsInfo01(value) {
-  if (value.includes(">")) {
-    const separatePacketBytes = parseBmsInfoBuffer(bmsInfoBuffer01);
+  const separatePacketBytes = parseBmsInfoBuffer(value);
 
-    console.table(separatePacketBytes);
+  console.table(separatePacketBytes);
 
-    if (separatePacketBytes.length !== 8) {
-      bmsInfoBuffer01 = [];
-      log(i18next.t("bmsInfoError", { separatePacketBytesLength: separatePacketBytes.length }));
-      return "<parseKiaNiroBmsInfo error>";
-    }
-
-    console.table(separatePacketBytes);
-
-    const batteryCurrentValue = signedIntFromBytes(separatePacketBytes[1].slice(0, 2)) / 10;
-    const batteryVoltageValue = signedIntFromBytes(separatePacketBytes[1].slice(2, 4)) / 10;
-    const batteryPower = batteryCurrentValue * batteryVoltageValue;
-
-    const battery12VVoltage = unsignedIntFromBytes(separatePacketBytes[3][5]) / 10;
-
-    const socValue = unsignedIntFromBytes(separatePacketBytes[0][1]) / 2;
-
-    const maxRegenValue = unsignedIntFromBytes(separatePacketBytes[0].slice(2, 4)) / 100;
-
-    const maxPowerValue = unsignedIntFromBytes(separatePacketBytes[0].slice(4, 6)) / 100;
-
-    const batteryMaxT = signedIntFromBytes(separatePacketBytes[1][4]);
-    const batteryMinT = signedIntFromBytes(separatePacketBytes[1][5]);
-
-    const maxCellVoltageValue = (unsignedIntFromBytes(separatePacketBytes[2][6]) * 2) / 100;
-    const minCellVoltageValue = (unsignedIntFromBytes(separatePacketBytes[3][1]) * 2) / 100;
-
-    log(i18next.t("bmsInfo1"), "info");
-    log(i18next.t("bmsInfoSoc", { socValue: socValue }), "info");
-    log(i18next.t("bmsInfoMaxRegen", { maxRegenValue: maxRegenValue }), "info");
-    log(i18next.t("bmsInfoMaxPower", { maxPowerValue: maxPowerValue }), "info");
-    log(i18next.t("bmsInfoBatteryMaxT", { batteryMaxT: batteryMaxT }), "info");
-    log(i18next.t("bmsInfoBatteryMinT", { batteryMinT: batteryMinT }), "info");
-    log(i18next.t("bmsInfoMinCellVoltage", { minCellVoltageValue: minCellVoltageValue }), "info");
-    log(i18next.t("bmsInfoMaxCellVoltage", { maxCellVoltageValue: maxCellVoltageValue }), "info");
-    log(
-      batteryPower > 0
-        ? i18next.t("bmsInfoDischargePower", { dischargePowerValue: Math.abs(batteryPower) / 1000 })
-        : i18next.t("bmsInfoChargePower", { chargePowerValue: Math.abs(batteryPower) / 1000 }),
-      "info"
-    );
-    log(
-      batteryCurrentValue > 0
-        ? i18next.t("bmsInfoDischargeCurrent", { dischargeCurrentValue: batteryCurrentValue })
-        : i18next.t("bmsInfoChargeCurrent", { chargeCurrentValue: batteryCurrentValue }),
-      "info"
-    );
-    log(i18next.t("bmsInfoBatteryVoltage", { batteryVoltageValue: batteryVoltageValue }), "info");
-    log(i18next.t("bmsInfoBattery12VVoltage", { battery12VVoltage: battery12VVoltage }), "info");
-
-    bmsInfoBuffer01 = [];
+  if (separatePacketBytes.length !== 9) {
+    log(i18next.t("bmsInfoError", { separatePacketBytesLength: separatePacketBytes.length }));
+    return "<parseKiaNiroBmsInfo error>";
   }
 
-  bmsInfoBuffer01.push(value);
+  console.table(separatePacketBytes);
+
+  const batteryCurrentValue = signedIntFromBytes(separatePacketBytes[2].slice(0, 2)) / 10;
+  const batteryVoltageValue = signedIntFromBytes(separatePacketBytes[2].slice(2, 4)) / 10;
+  const batteryPower = batteryCurrentValue * batteryVoltageValue;
+
+  const battery12VVoltage = unsignedIntFromBytes(separatePacketBytes[4][5]) / 10;
+
+  const socValue = unsignedIntFromBytes(separatePacketBytes[1][1]) / 2;
+
+  const maxRegenValue = unsignedIntFromBytes(separatePacketBytes[1].slice(2, 4)) / 100;
+
+  const maxPowerValue = unsignedIntFromBytes(separatePacketBytes[1].slice(4, 6)) / 100;
+
+  const batteryMaxT = signedIntFromBytes(separatePacketBytes[2][4]);
+  const batteryMinT = signedIntFromBytes(separatePacketBytes[2][5]);
+
+  const batteryInletT = signedIntFromBytes(separatePacketBytes[3][5]);
+
+  const maxCellVoltageValue = (unsignedIntFromBytes(separatePacketBytes[3][6]) * 2) / 100;
+  const minCellVoltageValue = (unsignedIntFromBytes(separatePacketBytes[4][1]) * 2) / 100;
+
+  log(i18next.t("bmsInfo1"), "info");
+  log(i18next.t("bmsInfoSoc", { socValue: socValue }), "info");
+  log(i18next.t("bmsInfoMaxRegen", { maxRegenValue: maxRegenValue }), "info");
+  log(i18next.t("bmsInfoMaxPower", { maxPowerValue: maxPowerValue }), "info");
+  log(i18next.t("bmsInfoBatteryMaxT", { batteryMaxT }), "info");
+  log(i18next.t("bmsInfoBatteryMinT", { batteryMinT }), "info");
+  log(i18next.t("bmsInfoBatteryInletT", { batteryInletT }), "info");
+  log(i18next.t("bmsInfoMinCellVoltage", { minCellVoltageValue: minCellVoltageValue }), "info");
+  log(i18next.t("bmsInfoMaxCellVoltage", { maxCellVoltageValue: maxCellVoltageValue }), "info");
+  log(
+    batteryPower > 0
+      ? i18next.t("bmsInfoDischargePower", { dischargePowerValue: (Math.abs(batteryPower) / 1000).toFixed(2) })
+      : i18next.t("bmsInfoChargePower", { chargePowerValue: (Math.abs(batteryPower) / 1000).toFixed(2) }),
+    "info"
+  );
+  log(
+    batteryCurrentValue > 0
+      ? i18next.t("bmsInfoDischargeCurrent", { dischargeCurrentValue: batteryCurrentValue })
+      : i18next.t("bmsInfoChargeCurrent", { chargeCurrentValue: batteryCurrentValue }),
+    "info"
+  );
+  log(i18next.t("bmsInfoBatteryVoltage", { batteryVoltageValue: batteryVoltageValue }), "info");
+  log(i18next.t("bmsInfoBattery12VVoltage", { battery12VVoltage: battery12VVoltage }), "info");
 }
 
-let bmsInfoBuffer05 = [];
+const sampleBmsInfo05 = `7F 22 12 
+7F 22 12 
+7F 22 12 
+02E 
+0: 62 01 05 00 3F FF 
+1: 90 00 00 00 00 00 00
+2: 00 00 00 00 00 00 3E
+3: 1C 37 42 00 A5 50 14
+4: 00 03 E8 47 03 E8 36
+5: 43 00 00 BA BA 00 00
+6: 06 00 00 00 00 AA AA
+>`;
+
 function parseHyundaiKonaBmsInfo05(value) {
-  console.log(bmsInfoBuffer05);
-  if (value.includes(">")) {
-    const separatePacketBytes = parseBmsInfoBuffer(bmsInfoBuffer05);
+  const separatePacketBytes = parseBmsInfoBuffer(value);
 
-    const heaterTemp = signedIntFromBytes(separatePacketBytes[2][6]);
+  console.table(separatePacketBytes);
 
-    const sohValue = unsignedIntFromBytes([separatePacketBytes[3][1], separatePacketBytes[3][2]]) / 10;
+  const heaterTemp = signedIntFromBytes(separatePacketBytes[2][6]);
 
-    log(i18next.t("bmsInfo5"), "info");
-    log(i18next.t("bmsSoh", { sohValue: sohValue }), "info");
-    log(i18next.t("bmsHeaterTemp", { heaterTemp: heaterTemp }), "info");
+  const sohValue = unsignedIntFromBytes([separatePacketBytes[3][1], separatePacketBytes[3][2]]) / 10;
 
-    bmsInfoBuffer05 = [];
-  }
-
-  bmsInfoBuffer05.push(value);
+  log(i18next.t("bmsInfo5"), "info");
+  log(i18next.t("bmsSoh", { sohValue: sohValue }), "info");
+  log(i18next.t("bmsHeaterTemp", { heaterTemp: heaterTemp }), "info");
 }
