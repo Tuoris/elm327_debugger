@@ -628,7 +628,7 @@ function parseEngineFuelRate(value) {
 }
 
 function parseBmsInfoBuffer(buffer) {
-  const joinedBuffer = buffer.replaceAll("\n", "");
+  const joinedBuffer = buffer.replaceAll("\n", "").replaceAll("\r", "");
 
   const numberedPackets = Array.from(joinedBuffer.matchAll(/\d\:(\s[0-9A-F][0-9A-F]){7}/gm).map((match) => match[0]));
 
@@ -637,20 +637,8 @@ function parseBmsInfoBuffer(buffer) {
   return packets;
 }
 
-const sampleBmsInfo01 = `7F 22 12
-7F 22 12 
-03E 
-0: 62 01 01 FF F7 E7 
-7F 22 12 
-1: FF 41 3E 1C 37 42 83
-2: FB D9 0E 45 05 05 05
-3: 05 05 05 00 00 16 BA
-4: 0A BA 32 00 00 92 00
-5: 06 BD 4A 00 06 A1 DD
-6: 00 02 8C FE 00 02 70
-7: C7 01 35 88 93 09 01
-8: 6F 00 00 00 00 03 E8
->`;
+const sampleBmsInfo01 =
+  "7F 22 12 \r7F 22 12 \r03E \r0: 62 01 01 FF F7 E7 \r7F 22 121: FF 88 35 93 3E 1C 83 \r2: 00 28 0E D4 05 04 043: 04 04 04 00 00 03 C14: 03 C1 36 00 00 92 005: 06 C0 E4 00 06 A2 CE6: 00 02 8E 5C 00 02 717: 1F 01 35 B3 3E 0D 018: 7C 00 00 00 00 03 E8>";
 
 function parseHyundaiKonaBmsInfo01(value) {
   const separatePacketBytes = parseBmsInfoBuffer(value);
@@ -709,27 +697,17 @@ function parseHyundaiKonaBmsInfo01(value) {
   log(i18next.t("bmsInfoBattery12VVoltage", { battery12VVoltage: battery12VVoltage }), "info");
 }
 
-const sampleBmsInfo05 = `7F 22 12 
-7F 22 12 
-7F 22 12 
-02E 
-0: 62 01 05 00 3F FF 
-1: 90 00 00 00 00 00 00
-2: 00 00 00 00 00 00 3E
-3: 1C 37 42 00 A5 50 14
-4: 00 03 E8 47 03 E8 36
-5: 43 00 00 BA BA 00 00
-6: 06 00 00 00 00 AA AA
->`;
+const sampleBmsInfo05 =
+  "7F 22 12 \r7F 22 12 \r02E \r0: 62 01 05 00 3F FF \r7F 22 12 \r1: 90 00 00 00 00 00 002: 00 00 00 00 00 00 35 \r3: A5 3E 1C 00 01 50 034: 00 03 E8 47 03 E8 365: 8C 00 00 C1 C1 00 006: 05 00 00 00 00 AA AA>";
 
 function parseHyundaiKonaBmsInfo05(value) {
   const separatePacketBytes = parseBmsInfoBuffer(value);
 
   console.table(separatePacketBytes);
 
-  const heaterTemp = signedIntFromBytes(separatePacketBytes[2][6]);
+  const heaterTemp = signedIntFromBytes(separatePacketBytes[3][6]);
 
-  const sohValue = unsignedIntFromBytes([separatePacketBytes[3][1], separatePacketBytes[3][2]]) / 10;
+  const sohValue = unsignedIntFromBytes([separatePacketBytes[4][1], separatePacketBytes[4][2]]) / 10;
 
   log(i18next.t("bmsInfo5"), "info");
   log(i18next.t("bmsSoh", { sohValue: sohValue }), "info");
