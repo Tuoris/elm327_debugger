@@ -1,10 +1,10 @@
 :root {
     color-scheme: dark dark;
-    --background: #1c1f1c;
-    --accent: #73c676;
-    --accent-bg: #3a7d3c;
-    --accent-text: #e7ffe8;
-    --border: #026605;
+    --background: #24211f;
+    --accent: #ffa400;
+    --accent-bg: #654100;
+    --accent-text: #ffefe5;
+    --border: #8f5d00;
 }
 
 * {
@@ -51,7 +51,7 @@ pre {
     border: 1px solid var(--accent);
     border-radius: 4px;
     overflow: auto;
-    background-color: #0b170c;
+    background-color: #171514;
 }
 
 code {
@@ -75,11 +75,11 @@ button {
 }
 
 .log.info {
-    color: #5fe564;
+    color: #69ff6f;
 }
 
 .log.error {
-    color: #ff4b4b;
+    color: #ff3535;
 }
 
 form {
@@ -92,7 +92,7 @@ form input {
     padding: 0.4rem 0.6rem;
     border: 1px solid var(--accent);
     border-radius: 2px;
-    background-color: #0b170c;
+    background-color: #171514;
 }
 
 #commands {
