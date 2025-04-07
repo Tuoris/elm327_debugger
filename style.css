@@ -1,5 +1,10 @@
 :root {
-    color-scheme: light dark;
+    color-scheme: dark dark;
+    --background: #1c1f1c;
+    --accent: #73c676;
+    --accent-bg: #3a7d3c;
+    --accent-text: #e7ffe8;
+    --border: #026605;
 }
 
 * {
@@ -18,23 +23,35 @@ h1 {
 
 body {
     margin: 0;
+}
+
+#app {
     padding: 0.6rem;
-    min-height: 100vh;
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
+    min-height: 100dvh;
+    color: var(--accent-text);
+    background-color: var(--background);
+}
+
+.actionButtons {
+    display: flex;
+    gap: 0.6rem;
+    justify-content: center;
 }
 
 pre {
     flex-grow: 1;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     display: block;
     padding: 0.4rem;
     margin: 0;
     text-wrap: wrap;
-    border: 1px solid lightgray;
+    border: 1px solid var(--accent);
     border-radius: 4px;
     overflow: auto;
+    background-color: #0b170c;
 }
 
 code {
@@ -43,24 +60,26 @@ code {
 
 button {
     padding: 0.4rem 0.6rem;
+    color: var(--accent-text);
+    border: 1px solid var(--accent);
+    border-radius: 2px;
+    background-color: var(--accent-bg);
+}
+
+.logTimestamp {
+    display: none;
+}
+
+.showLogTimestamp .logTimestamp {
+    display: initial;
 }
 
 .log.info {
-    color: forestgreen;
+    color: #5fe564;
 }
 
 .log.error {
-    color: crimson;
-}
-
-@media (prefers-color-scheme: dark) {
-    .log.info {
-        color: greenyellow;
-    }
-
-    .log.error {
-        color: red;
-    }
+    color: #ff4b4b;
 }
 
 form {
@@ -71,6 +90,9 @@ form {
 form input {
     flex-grow: 1;
     padding: 0.4rem 0.6rem;
+    border: 1px solid var(--accent);
+    border-radius: 2px;
+    background-color: #0b170c;
 }
 
 #commands {

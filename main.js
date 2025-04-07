@@ -4,7 +4,13 @@ const logsContainer = document.querySelector("#logs");
 
 function log(string, level = "debug") {
   const newLogLine = document.createElement("code");
-  newLogLine.textContent = `${new Date().toISOString()}: ${string}`;
+  const timestampSpan = document.createElement("span");
+  timestampSpan.classList.add("logTimestamp");
+  timestampSpan.innerText = `${new Date().toISOString()}: `;
+  const messageSpan = document.createElement("span");
+  messageSpan.innerText = `${string}`;
+  newLogLine.appendChild(timestampSpan);
+  newLogLine.appendChild(messageSpan);
   newLogLine.classList.add("log");
   newLogLine.classList.add(level);
   logsContainer.appendChild(newLogLine);

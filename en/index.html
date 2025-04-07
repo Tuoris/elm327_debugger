@@ -15,20 +15,28 @@
   </head>
 
   <body>
-    <h1>ELM 327 Bluetooth app <small>ver. 0.9.1</small></h1>
-    <button id="requestDevice">Connect to ELM 327</button>
+    <section id="app">
+      <h1>ELM 327 Bluetooth app <small>ver. 0.9.1</small></h1>
+      <div class="actionButtons">
+        <button id="requestDevice">Connect to ELM 327</button>
+        <button id="toggleLogTimestamps" aria-label="Toggle log timestamps">🕗</button>
+        <button id="copyLogs" aria-label="Copy logs">📋</button>
+        <button id="toggleFullscreen" aria-label="Toggle fullscreen">⛶</button>
+      </div>
 
-    <pre id="logs"></pre>
+      <pre id="logs"></pre>
 
-    <form id="submitForm">
-      <input type="text" name="dataToSent" placeholder="Enter commands here or select from predefined set below" />
-      <button type="submit">Send</button>
-    </form>
-    <div id="commands"></div>
+      <form id="submitForm">
+        <input type="text" name="dataToSent" placeholder="Enter commands here or select from predefined set below" />
+        <button type="submit">Send</button>
+      </form>
+      <div id="commands"></div>
+    </section>
   </body>
   <script>
     const APP_LANGUAGE = "en";
   </script>
   <script src="../utils.js"></script>
   <script src="../main.js"></script>
+  <script src="../actions.js"></script>
 </html>
