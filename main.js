@@ -87,10 +87,15 @@ i18next
           bmsInfoChargeCurrent: "- струм батареї: {{chargeCurrentValue}} А - заряджання",
           bmsInfoBatteryVoltage: "- напруга батареї: {{batteryVoltageValue}} В",
           bmsInfoBatteryAuxBatteryVoltage: "- напруга 12В батареї: {{battery12VVoltage}} В",
+          bmsInfoCumulativeCapacityCharged: "- сукупна заряджена ємність {{cumulativeCapacityCharged}} А·год",
+          bmsInfoCumulativeCapacityDischarged: "- сукупна розряджена ємність {{cumulativeCapacityDischarged}} А·год",
+          bmsInfoCumulativeEnergyCharged: "- сукупна заряджена енергія {{cumulativeEnergyCharged}} кВт·год",
+          bmsInfoCumulativeEnergyDischarged: "- сукупна розряджена енергія {{cumulativeEnergyDischarged}} кВт·год",
           bmsInfo5: "Інформація #5 з BMS HKMC EV:",
           bmsSoh: "- здоров'я акумулятора (SOH): {{sohValue}} %",
           bmsHeaterTemp: "- температура обігрівача акумулятора: {{heaterTemp}} °C",
           bmsSocDisplay: `- рівень заряду: {{socDisplay}} %`,
+          mileageKm: "- пробіг {{odometerKm}} км",
         },
       },
       en: {
@@ -164,10 +169,15 @@ i18next
           bmsInfoChargeCurrent: "- battery current: {{chargeCurrentValue}} A - charging",
           bmsInfoBatteryVoltage: "- battery voltage: {{batteryVoltageValue}} V",
           bmsInfoBatteryAuxBatteryVoltage: "- 12V battery voltage: {{battery12VVoltage}} V",
+          bmsInfoCumulativeCapacityCharged: "- cumulative capacity charged {{cumulativeCapacityCharged}} Ah",
+          bmsInfoCumulativeCapacityDischarged: "- cumulative capacity discharged {{cumulativeCapacityDischarged}} Ah",
+          bmsInfoCumulativeEnergyCharged: "- cumulative energy charged {{cumulativeEnergyCharged}} kWh",
+          bmsInfoCumulativeEnergyDischarged: "- cumulative energy charged {{cumulativeEnergyDischarged}} kWh",
           bmsInfo5: "BMS info #5 HKMC EV:",
           bmsSoh: "- battery state of health (SOH): {{sohValue}} %",
           bmsHeaterTemp: "- battery heater temperature: {{heaterTemp}} °C",
           bmsSocDisplay: `- state of charge (display): {{socDisplay}} %`,
+          mileageKm: "- mileage {{odometerKm}} km",
         },
       },
     },
@@ -681,17 +691,17 @@ function parseHkmcEvBmsInfo01(value) {
 
   const auxBatteryVoltage = unsignedIntFromBytes(separatePacketBytes[4][5]) / 10;
 
-  const cumulativeChargeCurrent =
-    unsignedIntFromBytes([separatePacketBytes[4][6], ...separatePacketBytes[5].slice(0, 3)]) / 100;
+  const cumulativeCapacityCharged =
+    unsignedIntFromBytes([separatePacketBytes[4][6], ...separatePacketBytes[5].slice(0, 3)]) / 10;
 
-  const cumulativeDischargeCurrent = unsignedIntFromBytes(separatePacketBytes[5].slice(3, 7)) / 100;
+  const cumulativeCapacityDischarged = unsignedIntFromBytes(separatePacketBytes[5].slice(3, 7)) / 10;
 
-  const cumulativeEnergyCharge = unsignedIntFromBytes(separatePacketBytes[6].slice(0, 4)) / 10;
-  const cumulativeEnergyDischarge =
+  const cumulativeEnergyCharged = unsignedIntFromBytes(separatePacketBytes[6].slice(0, 4)) / 10;
+  const cumulativeEnergyDischarged =
     unsignedIntFromBytes([...separatePacketBytes[6].slice(4, 7), separatePacketBytes[7][0]]) / 10;
 
-  const averageCellVoltageWhileCharge = cumulativeEnergyCharge / cumulativeChargeCurrent;
-  const averageCellVoltageWhileDischarge = cumulativeEnergyDischarge / cumulativeDischargeCurrent;
+  const averageBatteryVoltageWhileCharge = cumulativeEnergyCharged / cumulativeCapacityCharged;
+  const averageBatteryVoltageWhileDischarge = cumulativeEnergyDischarged / cumulativeCapacityDischarged;
 
   const operationalTimeSeconds = unsignedIntFromBytes(separatePacketBytes[7].slice(1, 5));
   const operationalTimeHours = operationalTimeSeconds / 60;
@@ -730,6 +740,11 @@ function parseHkmcEvBmsInfo01(value) {
   log(i18next.t("bmsInfoBatteryVoltage", { batteryVoltageValue: batteryVoltage }), "info");
   log(i18next.t("bmsInfoBatteryAuxBatteryVoltage", { battery12VVoltage: auxBatteryVoltage }), "info");
 
+  log(i18next.t("bmsInfoCumulativeCapacityCharged", { cumulativeCapacityCharged }), "info");
+  log(i18next.t("bmsInfoCumulativeCapacityDischarged", { cumulativeCapacityDischarged }), "info");
+  log(i18next.t("bmsInfoCumulativeEnergyCharged", { cumulativeEnergyCharged }), "info");
+  log(i18next.t("bmsInfoCumulativeEnergyDischarged", { cumulativeEnergyDischarged }), "info");
+
   return {
     socBms,
     maxRegenerationPower,
@@ -750,12 +765,12 @@ function parseHkmcEvBmsInfo01(value) {
     batteryFanMod,
     batteryFanSpeed,
     auxBatteryVoltage,
-    cumulativeChargeCurrent,
-    cumulativeDischargeCurrent,
-    cumulativeEnergyCharge,
-    cumulativeEnergyDischarge,
-    averageCellVoltageWhileCharge,
-    averageCellVoltageWhileDischarge,
+    cumulativeCapacityCharged,
+    cumulativeCapacityDischarged,
+    cumulativeEnergyCharged,
+    cumulativeEnergyDischarged,
+    averageBatteryVoltageWhileCharge,
+    averageBatteryVoltageWhileDischarge,
     operationalTimeSeconds,
     operationalTimeHours,
     bmsIgnition,
@@ -1135,6 +1150,9 @@ function parseHkmcEvClusterInfo02(value) {
   const separatePacketBytes = parseBmsInfoBuffer(value);
 
   const odometerKm = unsignedIntFromBytes(separatePacketBytes[1].slice(3, 6));
+
+  log(i18next.t("hkmcEvClusterInfo02"), "info");
+  log(i18next.t("mileageKm", { odometerKm }), "info");
 
   return {
     odometerKm,
