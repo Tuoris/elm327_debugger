@@ -66,6 +66,10 @@ button {
     background-color: var(--accent-bg);
 }
 
+button:active {
+    transform: perspective(300px) translate3d(0, 0, -10px);
+}
+
 .logTimestamp {
     display: none;
 }
