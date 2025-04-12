@@ -57,8 +57,7 @@ i18next
           fuelConsumption: "Витрата пального",
           increaseResponseTime: "Збільшити час відповіді",
           hkmcEvBmsEcu: "HKMC EV блок BMS",
-          hkmcEvBmsInfo1: "HKMC EV інформація  #1 з BMS",
-          hkmcEvBmsInfo5: "HKMC EV інформація  #5 з BMS",
+          hkmcEvBmsInfo: "HKMC EV інформація  #{{commandNo}} з BMS",
           hkmcEvClusterEcu: "HKMC EV блок CLUSTER",
           hkmcEvClusterInfo02: "HKMC EV інформація #2 з CLUSTER",
           checkEngineLightOn: 'Лампа "Check Engine" горить',
@@ -102,6 +101,12 @@ i18next
           bmsHeaterTemp: "- температура обігрівача акумулятора: {{heaterTemp}} °C",
           bmsSocDisplay: `- рівень заряду: {{socDisplay}} %`,
           mileageKm: "- пробіг {{odometerKm}} км",
+          allParamsNiroKona: "Kona/Niro всі параметри",
+          cellVoltage: "- напруга комірки #{{cellNumber}}: {{cellVoltage}} В",
+          bmsCoolingWaterTemp: "- температура охолоджувальної рідини {{coolingWaterTemp}} °C",
+          bmsUnknownTempC: "- невідома температура С {{unknownTempC}} °C",
+          bmsMode: "- режим BMS {{bmsMode}}",
+          bmsUnknownTempD: "- невідома температура D {{unknownTempD}} °C",
         },
       },
       en: {
@@ -139,8 +144,7 @@ i18next
           fuelConsumption: "Fuel consumption",
           increaseResponseTime: "Increase response time",
           hkmcEvBmsEcu: "HKMC EV BMS ECU",
-          hkmcEvBmsInfo1: "HKMC EV BMS info #1",
-          hkmcEvBmsInfo5: "HKMC EV BMS info #5",
+          hkmcEvBmsInfo: "HKMC EV BMS info #{{commandNo}}",
           hkmcEvClusterEcu: "HKMC EV CLUSTER ECU",
           hkmcEvClusterInfo02: "HKMC EV CLUSTER info #2",
           checkEngineLightOn: "Check Engine light is on",
@@ -184,6 +188,12 @@ i18next
           bmsHeaterTemp: "- battery heater temperature: {{heaterTemp}} °C",
           bmsSocDisplay: `- state of charge (display): {{socDisplay}} %`,
           mileageKm: "- mileage {{odometerKm}} km",
+          allParamsNiroKona: "Kona/Niro all parameters",
+          cellVoltage: "- cell #{{cellNumber}} voltage: {{cellVoltage}} V",
+          bmsCoolingWaterTemp: "- cooling water temperature {{coolingWaterTemp}} °C",
+          bmsUnknownTempC: "- unknown temperature С {{unknownTempC}} °C",
+          bmsMode: "- BMS mode {{bmsMode}}",
+          bmsUnknownTempD: "- unknown temperature D {{unknownTempD}} °C",
         },
       },
     },
@@ -219,14 +229,38 @@ i18next
       [COMMANDS.ENGINE_FUEL_RATE]: i18next.t("fuelConsumption"),
       [COMMANDS.EXTENDED_TIMEOUT]: i18next.t("increaseResponseTime"),
       [COMMANDS.HKMC_EV_BMS_ECU]: i18next.t("hkmcEvBmsEcu"),
-      [COMMANDS.HKMC_EV_BMS_INFO_01]: i18next.t("hkmcEvBmsInfo1"),
-      [COMMANDS.HKMC_EV_BMS_INFO_05]: i18next.t("hkmcEvBmsInfo5"),
+      [COMMANDS.HKMC_EV_BMS_INFO_01]: i18next.t("hkmcEvBmsInfo", { commandNo: 1 }),
+      [COMMANDS.HKMC_EV_BMS_INFO_02]: i18next.t("hkmcEvBmsInfo", { commandNo: 2 }),
+      [COMMANDS.HKMC_EV_BMS_INFO_03]: i18next.t("hkmcEvBmsInfo", { commandNo: 3 }),
+      [COMMANDS.HKMC_EV_BMS_INFO_04]: i18next.t("hkmcEvBmsInfo", { commandNo: 4 }),
+      [COMMANDS.HKMC_EV_BMS_INFO_05]: i18next.t("hkmcEvBmsInfo", { commandNo: 5 }),
+      [COMMANDS.HKMC_EV_BMS_INFO_06]: i18next.t("hkmcEvBmsInfo", { commandNo: 6 }),
       [COMMANDS.HKMC_EV_CLUSTER_ECU]: i18next.t("hkmcEvClusterEcu"),
       [COMMANDS.HKMC_EV_CLUSTER_INFO_02]: i18next.t("hkmcEvClusterInfo02"),
     };
 
     const commandsContainer = document.querySelector("#commands");
     commandsContainer.innerHTML = "";
+
+    const allHkmcCommandButton = document.createElement("button");
+    allHkmcCommandButton.innerText = i18next.t("allParamsNiroKona");
+    allHkmcCommandButton.addEventListener("click", async () => {
+      for (let command of [
+        COMMANDS.HKMC_EV_BMS_ECU,
+        COMMANDS.HKMC_EV_BMS_INFO_01,
+        COMMANDS.HKMC_EV_BMS_INFO_02,
+        COMMANDS.HKMC_EV_BMS_INFO_03,
+        COMMANDS.HKMC_EV_BMS_INFO_04,
+        COMMANDS.HKMC_EV_BMS_INFO_05,
+        COMMANDS.HKMC_EV_BMS_INFO_06,
+        COMMANDS.HKMC_EV_CLUSTER_ECU,
+        COMMANDS.HKMC_EV_CLUSTER_INFO_02,
+      ]) {
+        await sendData(command);
+      }
+    });
+    commandsContainer.appendChild(allHkmcCommandButton);
+
     for (const command of Object.values(COMMANDS)) {
       const commandButton = document.createElement("button");
       commandButton.addEventListener("click", () => sendData(command));
@@ -390,7 +424,11 @@ const COMMANDS = {
   EXTENDED_TIMEOUT: "AT ST96",
   HKMC_EV_BMS_ECU: "AT SH 7E4",
   HKMC_EV_BMS_INFO_01: "220101",
+  HKMC_EV_BMS_INFO_02: "220102",
+  HKMC_EV_BMS_INFO_03: "220103",
+  HKMC_EV_BMS_INFO_04: "220104",
   HKMC_EV_BMS_INFO_05: "220105",
+  HKMC_EV_BMS_INFO_06: "220106",
   HKMC_EV_CLUSTER_ECU: "AT SH 7C6",
   HKMC_EV_CLUSTER_INFO_02: "22B002",
 };
@@ -411,7 +449,12 @@ const handlers = {
   [COMMANDS.ENGINE_FUEL_RATE]: parseEngineFuelRate,
   [COMMANDS.CONTROL_MODULE_VOLTAGE]: parseControlModuleVoltage,
   [COMMANDS.HKMC_EV_BMS_INFO_01]: parseHkmcEvBmsInfo01,
+  [COMMANDS.HKMC_EV_BMS_INFO_02]: parseHkmcEvBmsInfo02,
+  [COMMANDS.HKMC_EV_BMS_INFO_03]: parseHkmcEvBmsInfo03,
+  [COMMANDS.HKMC_EV_BMS_INFO_04]: parseHkmcEvBmsInfo04,
   [COMMANDS.HKMC_EV_BMS_INFO_05]: parseHkmcEvBmsInfo05,
+  [COMMANDS.HKMC_EV_BMS_INFO_06]: parseHkmcEvBmsInfo06,
+  [COMMANDS.HKMC_EV_CLUSTER_INFO_02]: parseHkmcEvClusterInfo02,
 };
 
 function parseResponse(value) {
@@ -667,7 +710,7 @@ function parseBmsInfoBuffer(buffer) {
   return packets;
 }
 
-const sampleBmsInfo01 =
+const sampleParseHkmcEvBmsInfo01 =
   "7F 22 12 \r7F 22 12 \r03E \r0: 62 01 01 FF F7 E7 \r7F 22 121: FF 88 35 93 3E 1C 83 \r2: 00 28 0E D4 05 04 043: 04 04 04 00 00 03 C14: 03 C1 36 00 00 92 005: 06 C0 E4 00 06 A2 CE6: 00 02 8E 5C 00 02 717: 1F 01 35 B3 3E 0D 018: 7C 00 00 00 00 03 E8>";
 
 function parseHkmcEvBmsInfo01(value) {
@@ -849,6 +892,16 @@ function parseHkmcEvBmsInfo02(value) {
     cellVoltage32,
   ] = cellVoltages;
 
+  for (let index = 0; index < 32; index++) {
+    log(
+      i18next.t("cellVoltage", {
+        cellNumber: (index + 1).toString().padStart(2, "0"),
+        cellVoltage: cellVoltages[index],
+      }),
+      "info"
+    );
+  }
+
   return {
     cellVoltage01,
     cellVoltage02,
@@ -946,6 +999,16 @@ function parseHkmcEvBmsInfo03(value) {
     cellVoltage63,
     cellVoltage64,
   ] = cellVoltages;
+
+  for (let index = 0; index < 32; index++) {
+    log(
+      i18next.t("cellVoltage", {
+        cellNumber: (index + 33).toString().padStart(2, "0"),
+        cellVoltage: cellVoltages[index],
+      }),
+      "info"
+    );
+  }
 
   return {
     cellVoltage33,
@@ -1045,6 +1108,16 @@ function parseHkmcEvBmsInfo04(value) {
     cellVoltage96,
   ] = cellVoltages;
 
+  for (let index = 0; index < 32; index++) {
+    log(
+      i18next.t("cellVoltage", {
+        cellNumber: (index + 65).toString().padStart(2, "0"),
+        cellVoltage: cellVoltages[index],
+      }),
+      "info"
+    );
+  }
+
   return {
     cellVoltage65,
     cellVoltage66,
@@ -1081,7 +1154,7 @@ function parseHkmcEvBmsInfo04(value) {
   };
 }
 
-const sampleBmsInfo05 =
+const sampleParseHkmcEvBmsInfo05 =
   "7F 22 12 \r7F 22 12 \r02E \r0: 62 01 05 00 3F FF \r7F 22 12 \r1: 90 00 00 00 00 00 002: 00 00 00 00 00 00 35 \r3: A5 3E 1C 00 01 50 034: 00 03 E8 47 03 E8 365: 8C 00 00 C1 C1 00 006: 05 00 00 00 00 AA AA>";
 
 function parseHkmcEvBmsInfo05(value) {
@@ -1109,7 +1182,20 @@ function parseHkmcEvBmsInfo05(value) {
 
   const unknownTempB = signedIntFromBytes(separatePacketBytes[6][0]);
 
-  log(i18next.t("bmsInfo5"), "info");
+  // log(i18next.t("bmsInfo5"), "info");
+
+  const cellVoltages = [cellVoltage97, cellVoltage98];
+
+  for (let index = 0; index < 2; index++) {
+    log(
+      i18next.t("cellVoltage", {
+        cellNumber: (index + 97).toString().padStart(2, "0"),
+        cellVoltage: cellVoltages[index],
+      }),
+      "info"
+    );
+  }
+
   log(i18next.t("bmsSoh", { sohValue: soh }), "info");
   log(i18next.t("bmsHeaterTemp", { heaterTemp: heaterTemp }), "info");
   log(i18next.t("bmsSocDisplay", { socDisplay }), "info");
@@ -1130,6 +1216,18 @@ function parseHkmcEvBmsInfo05(value) {
   };
 }
 
+const sampleParseHkmcEvBmsInfo06 = `7F 22 12 
+7F 22 12 
+027 
+0: 62 01 06 FF FF FF 
+7F 22 12 
+1: FF 15 00 15 00 30 7C 
+2: 7C 00 31 7C 81 00 00 
+3: B4 B3 00 0B 28 00 00
+4: 00 00 00 00 00 00 00 
+5: 00 00 00 00 00 AA AA
+>`;
+
 function parseHkmcEvBmsInfo06(value) {
   const separatePacketBytes = parseBmsInfoBuffer(value);
 
@@ -1137,6 +1235,11 @@ function parseHkmcEvBmsInfo06(value) {
   const unknownTempC = signedIntFromBytes(separatePacketBytes[1][3]);
   const bmsMode = unsignedIntFromBytes(separatePacketBytes[2][4]).toString(2);
   const unknownTempD = signedIntFromBytes(separatePacketBytes[3][3]);
+
+  log(i18next.t("bmsCoolingWaterTemp", { coolingWaterTemp }), "info");
+  log(i18next.t("bmsUnknownTempC", { unknownTempC }), "info");
+  log(i18next.t("bmsMode", { bmsMode }), "info");
+  log(i18next.t("bmsUnknownTempD", { unknownTempD }), "info");
 
   return {
     coolingWaterTemp,

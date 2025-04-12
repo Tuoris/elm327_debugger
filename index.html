@@ -16,14 +16,17 @@
 
   <body>
     <section id="app">
-      <h1>ELM 327 Bluetooth додаток <small>ver. 0.9.3</small></h1>
+      <h1>ELM 327 Bluetooth додаток <small>ver. 1.0.0</small></h1>
+
+      <pre id="logs"></pre>
+
       <div class="actionButtons">
         <button id="requestDevice">З'єднатись з ELM 327</button>
         <button id="toggleLogTimestamps" aria-label="Увімкнути/вимкнути мітки часу">🕗</button>
         <button id="copyLogs" aria-label="Скопіювати лог">📋</button>
         <button id="toggleFullscreen" aria-label="Повноекранний режим">⛶</button>
       </div>
-      <pre id="logs"></pre>
+
       <form id="submitForm">
         <input type="text" name="dataToSent" placeholder="Введіть команду або використайте вбудовані команди нижче" />
         <button type="submit">Надіслати</button>
