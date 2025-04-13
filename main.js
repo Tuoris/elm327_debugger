@@ -83,6 +83,7 @@ i18next
           bmsInfoMaxPower: "- доступна потужність: {{maxPower}} кВт",
           bmsInfoBatteryMaxT: "- температура акумулятора (макс.): {{batteryMaxT}} °C",
           bmsInfoBatteryMinT: "- температура акумулятора (мін.): {{batteryMinT}} °C",
+          bmsInfoBatteryModuleTemp: "- температура модуля {{moduleNumber}} акумулятора: {{batteryModuleTemp}} °C",
           bmsInfoBatteryInletT: "- температура охолоджувальної рідини акумулятора: {{batteryInletT}} °C",
           bmsInfoMinCellVoltage: "- мінімальна напруга комірки: {{minCellVoltageValue}} В",
           bmsInfoMaxCellVoltage: "- максимальна напруга комірки: {{maxCellVoltageValue}} В",
@@ -96,6 +97,8 @@ i18next
           bmsInfoCumulativeCapacityDischarged: "- сукупна розряджена ємність {{cumulativeCapacityDischarged}} А·год",
           bmsInfoCumulativeEnergyCharged: "- сукупна заряджена енергія {{cumulativeEnergyCharged}} кВт·год",
           bmsInfoCumulativeEnergyDischarged: "- сукупна розряджена енергія {{cumulativeEnergyDischarged}} кВт·год",
+          bmsInfoOperationalTimeSeconds: "- час експлуатації: {{operationalTimeSeconds}} секунд",
+          bmsInfoOperationalTimeHours: "- час експлуатації: {{operationalTimeHours}} години",
           bmsInfo5: "Інформація #5 з BMS HKMC EV:",
           bmsSoh: "- здоров'я акумулятора (SOH): {{sohValue}} %",
           bmsHeaterTemp: "- температура обігрівача акумулятора: {{heaterTemp}} °C",
@@ -107,6 +110,10 @@ i18next
           bmsUnknownTempC: "- невідома температура С {{unknownTempC}} °C",
           bmsMode: "- режим BMS {{bmsMode}}",
           bmsUnknownTempD: "- невідома температура D {{unknownTempD}} °C",
+          calculatedParamsInfo: "Розраховані параметри:",
+          calculateAverageConsumption: "- середня витрата (за весь пробіг) {{averageConsumption}} кВт·год/100км",
+          calculatedDischargeEfficiency:
+            "- середня ефективність при розряджанні (за весь пробіг): {{dischargeEfficiency}} %",
         },
       },
       en: {
@@ -170,6 +177,7 @@ i18next
           bmsInfoMaxPower: "- available power: {{maxPower}} kW",
           bmsInfoBatteryMaxT: "- battery temperature (max.): {{batteryMaxT}} °C",
           bmsInfoBatteryMinT: "- battery temperature (min.): {{batteryMinT}} °C",
+          bmsInfoBatteryModuleTemp: "- battery module #{{moduleNumber}} temperature: {{batteryModuleTemp}} °C",
           bmsInfoBatteryInletT: "- battery inlet (cooling liquid) temperature: {{batteryInletT}} °C",
           bmsInfoMinCellVoltage: "- minimum cell voltage: {{minCellVoltageValue}} V",
           bmsInfoMaxCellVoltage: "- maximum cell voltage: {{maxCellVoltageValue}} V",
@@ -183,6 +191,8 @@ i18next
           bmsInfoCumulativeCapacityDischarged: "- cumulative capacity discharged {{cumulativeCapacityDischarged}} Ah",
           bmsInfoCumulativeEnergyCharged: "- cumulative energy charged {{cumulativeEnergyCharged}} kWh",
           bmsInfoCumulativeEnergyDischarged: "- cumulative energy charged {{cumulativeEnergyDischarged}} kWh",
+          bmsInfoOperationalTimeSeconds: "- operational time: {{operationalTimeSeconds}} seconds",
+          bmsInfoOperationalTimeHours: "- operational time: {{operationalTimeHours}} hours",
           bmsInfo5: "BMS info #5 HKMC EV:",
           bmsSoh: "- battery state of health (SOH): {{sohValue}} %",
           bmsHeaterTemp: "- battery heater temperature: {{heaterTemp}} °C",
@@ -194,6 +204,9 @@ i18next
           bmsUnknownTempC: "- unknown temperature С {{unknownTempC}} °C",
           bmsMode: "- BMS mode {{bmsMode}}",
           bmsUnknownTempD: "- unknown temperature D {{unknownTempD}} °C",
+          calculatedParamsInfo: "Calculated params:",
+          calculateAverageConsumption: "- average consumption (lifetime): {{averageConsumption}} kWh/100km",
+          calculatedDischargeEfficiency: "- discharge efficiency (lifetime): {{dischargeEfficiency}} %",
         },
       },
     },
@@ -245,6 +258,8 @@ i18next
     const allHkmcCommandButton = document.createElement("button");
     allHkmcCommandButton.innerText = i18next.t("allParamsNiroKona");
     allHkmcCommandButton.addEventListener("click", async () => {
+      let allData = {};
+
       for (let command of [
         COMMANDS.HKMC_EV_BMS_ECU,
         COMMANDS.HKMC_EV_BMS_INFO_01,
@@ -256,7 +271,27 @@ i18next
         COMMANDS.HKMC_EV_CLUSTER_ECU,
         COMMANDS.HKMC_EV_CLUSTER_INFO_02,
       ]) {
-        await sendData(command);
+        const response = await sendData(command);
+        if (command.startsWith("22")) {
+          allData = { ...allData, ...response };
+        }
+      }
+
+      log(i18next.t("calculatedParamsInfo"), "info");
+
+      if (allData["cumulativeEnergyDischarged"] && allData["odometerKm"]) {
+        const averageConsumption = (allData["cumulativeEnergyDischarged"] / allData["odometerKm"]) * 100;
+
+        log(i18next.t("calculateAverageConsumption", { averageConsumption: averageConsumption.toFixed(1) }), "info");
+      }
+
+      if (allData["cumulativeEnergyDischarged"] && allData["cumulativeEnergyCharged"]) {
+        const dischargeEfficiency = (allData["cumulativeEnergyDischarged"] / allData["cumulativeEnergyCharged"]) * 100;
+
+        log(
+          i18next.t("calculatedDischargeEfficiency", { dischargeEfficiency: dischargeEfficiency.toFixed(1) }),
+          "info"
+        );
       }
     });
     commandsContainer.appendChild(allHkmcCommandButton);
@@ -753,7 +788,7 @@ function parseHkmcEvBmsInfo01(value) {
   const averageBatteryVoltageWhileDischarge = cumulativeEnergyDischarged / cumulativeCapacityDischarged;
 
   const operationalTimeSeconds = unsignedIntFromBytes(separatePacketBytes[7].slice(1, 5));
-  const operationalTimeHours = operationalTimeSeconds / 60;
+  const operationalTimeHours = operationalTimeSeconds / 60 / 60;
 
   const bmsIgnition = unsignedIntFromBytes(separatePacketBytes[7][5]).toString(2);
   const bmsCapacitorVoltage = unsignedIntFromBytes([separatePacketBytes[7][6], separatePacketBytes[8][0]]);
@@ -771,6 +806,10 @@ function parseHkmcEvBmsInfo01(value) {
   log(i18next.t("bmsInfoMaxPower", { maxPower }), "info");
   log(i18next.t("bmsInfoBatteryMaxT", { batteryMaxT: batteryMaxTemp }), "info");
   log(i18next.t("bmsInfoBatteryMinT", { batteryMinT: batteryMinTemp }), "info");
+  log(i18next.t("bmsInfoBatteryModuleTemp", { moduleNumber: 1, batteryModuleTemp: batteryTemp1 }), "info");
+  log(i18next.t("bmsInfoBatteryModuleTemp", { moduleNumber: 2, batteryModuleTemp: batteryTemp2 }), "info");
+  log(i18next.t("bmsInfoBatteryModuleTemp", { moduleNumber: 3, batteryModuleTemp: batteryTemp3 }), "info");
+  log(i18next.t("bmsInfoBatteryModuleTemp", { moduleNumber: 4, batteryModuleTemp: batteryTemp4 }), "info");
   log(i18next.t("bmsInfoBatteryInletT", { batteryInletT: batteryInletTemp }), "info");
   log(i18next.t("bmsInfoMinCellVoltage", { minCellVoltageValue: batteryMinCellVoltage }), "info");
   log(i18next.t("bmsInfoMaxCellVoltage", { maxCellVoltageValue: batteryMaxCellVoltage }), "info");
@@ -793,6 +832,12 @@ function parseHkmcEvBmsInfo01(value) {
   log(i18next.t("bmsInfoCumulativeCapacityDischarged", { cumulativeCapacityDischarged }), "info");
   log(i18next.t("bmsInfoCumulativeEnergyCharged", { cumulativeEnergyCharged }), "info");
   log(i18next.t("bmsInfoCumulativeEnergyDischarged", { cumulativeEnergyDischarged }), "info");
+
+  log(
+    i18next.t("bmsInfoOperationalTimeSeconds", { operationalTimeSeconds: operationalTimeSeconds.toFixed(0) }),
+    "info"
+  );
+  log(i18next.t("bmsInfoOperationalTimeHours", { operationalTimeHours: operationalTimeHours.toFixed(0) }), "info");
 
   return {
     socBms,
