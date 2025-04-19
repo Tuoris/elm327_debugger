@@ -60,6 +60,10 @@ i18next
           hkmcEvBmsInfo: "HKMC EV інформація  #{{commandNo}} з BMS",
           hkmcEvClusterEcu: "HKMC EV блок CLUSTER",
           hkmcEvClusterInfo02: "HKMC EV інформація #2 з CLUSTER",
+          hkmcEvAbsEcu: "HKMC EV блок ABS",
+          hkmcEvAbsInfo01: "HKMC EV інформація #1 з ABS",
+          hkmcEvVmcuEcu: "HKMC EV блок VMCU",
+          hkmcEvVmcuInfo01: "HKMC EV інформація #1 з VMCU",
           checkEngineLightOn: 'Лампа "Check Engine" горить',
           checkEngineLightOff: 'Лампа "Check Engine" не горить',
           confirmedEmissionsRelatedDtcs:
@@ -114,6 +118,10 @@ i18next
           calculateAverageConsumption: "- середня витрата (за весь пробіг) {{averageConsumption}} кВт·год/100км",
           calculatedDischargeEfficiency:
             "- середня ефективність при розряджанні (за весь пробіг): {{dischargeEfficiency}} %",
+          steeringWheelAngle: "- кут повороту керма: {{steeringWheelAngle}}°",
+          brakePedalPositionRelative: "- позиція педалі гальм: {{brakePedalPositionRelative}} %",
+          acceleratorPedalPositionRelative: "- позиція педалі акселератора: {{acceleratorPedalPositionRelative}} %",
+          hkmcVehicleSpeed: "- швидкість: {{vehicleSpeed}} км/год",
         },
       },
       en: {
@@ -207,6 +215,10 @@ i18next
           calculatedParamsInfo: "Calculated params:",
           calculateAverageConsumption: "- average consumption (lifetime): {{averageConsumption}} kWh/100km",
           calculatedDischargeEfficiency: "- discharge efficiency (lifetime): {{dischargeEfficiency}} %",
+          steeringWheelAngle: "- steering wheel angle: {{steeringWheelAngle}}°",
+          brakePedalPositionRelative: "- brake pedal position: {{brakePedalPositionRelative}} %",
+          acceleratorPedalPositionRelative: "- accelerator pedal position: {{acceleratorPedalPositionRelative}} %",
+          hkmcVehicleSpeed: "- speed: {{vehicleSpeed}} km/h",
         },
       },
     },
@@ -250,6 +262,10 @@ i18next
       [COMMANDS.HKMC_EV_BMS_INFO_06]: i18next.t("hkmcEvBmsInfo", { commandNo: 6 }),
       [COMMANDS.HKMC_EV_CLUSTER_ECU]: i18next.t("hkmcEvClusterEcu"),
       [COMMANDS.HKMC_EV_CLUSTER_INFO_02]: i18next.t("hkmcEvClusterInfo02"),
+      [COMMANDS.HKMC_EV_ABS_ECU]: i18next.t("hkmcEvAbsEcu"),
+      [COMMANDS.HKMC_EV_ABS_INFO_01]: i18next.t("hkmcEvAbsInfo01"),
+      [COMMANDS.HKMC_EV_VMCU_ECU]: i18next.t("hkmcEvVmcuEcu"),
+      [COMMANDS.HKMC_EV_VMCU_INFO_1]: i18next.t("hkmcEvVmcuInfo01"),
     };
 
     const commandsContainer = document.querySelector("#commands");
@@ -466,6 +482,10 @@ const COMMANDS = {
   HKMC_EV_BMS_INFO_06: "220106",
   HKMC_EV_CLUSTER_ECU: "AT SH 7C6",
   HKMC_EV_CLUSTER_INFO_02: "22B002",
+  HKMC_EV_ABS_ECU: "AT SH 7D1",
+  HKMC_EV_ABS_INFO_01: "22C101",
+  HKMC_EV_VMCU_ECU: "AT SH 7E2",
+  HKMC_EV_VMCU_INFO_1: "2101",
 };
 
 let COMMAND_LABELS = {};
@@ -490,6 +510,8 @@ const handlers = {
   [COMMANDS.HKMC_EV_BMS_INFO_05]: parseHkmcEvBmsInfo05,
   [COMMANDS.HKMC_EV_BMS_INFO_06]: parseHkmcEvBmsInfo06,
   [COMMANDS.HKMC_EV_CLUSTER_INFO_02]: parseHkmcEvClusterInfo02,
+  [COMMANDS.HKMC_EV_ABS_INFO_01]: parseHkmcEvAbsInfo01,
+  [COMMANDS.HKMC_EV_VMCU_INFO_1]: parseHkmcEvVmcuInfo01,
 };
 
 function parseResponse(value) {
@@ -1310,5 +1332,64 @@ function parseHkmcEvClusterInfo02(value) {
 
   return {
     odometerKm,
+  };
+}
+
+const sampleHkmcEvAbsInfo01 = `02A 
+0: 62 C1 01 5F D7 E7 
+1: D0 FF FF 00 FF 01 E1 
+2: D4 00 00 00 00 FF 82 
+3: FF 00 34 F5 01 00 00 
+4: FF FF 7F 17 08 01 07 
+5: FC 44 FF 39 FF 3F FF
+6: FF AA AA AA AA AA AA
+>`;
+
+function parseHkmcEvAbsInfo01(value) {
+  const separatePacketBytes = parseBmsInfoBuffer(value);
+
+  const steeringWheelAngle = (unsignedIntFromBytes(separatePacketBytes[4].slice(2, 4)) - 2 ** 15) / 10;
+
+  const brakePedalPositionRelative = unsignedIntFromBytes(separatePacketBytes[5][1]);
+
+  log(i18next.t("hkmcEvAbsInfo01"), "info");
+  log(i18next.t("steeringWheelAngle", { steeringWheelAngle: steeringWheelAngle.toFixed(1) }), "info");
+  log(
+    i18next.t("brakePedalPositionRelative", { brakePedalPositionRelative: brakePedalPositionRelative.toFixed(2) }),
+    "info"
+  );
+
+  return {
+    steeringWheelAngle,
+    brakePedalPositionRelative,
+  };
+}
+
+const sampleHkmcEvVmcuInfo01 = `018 
+0: 61 01 FF F8 00 00
+1: 09 21 5A FC 0A 89 05
+2: 32 1D 00 00 99 72 34
+3: 04 20 20 05 00 00 00
+>`;
+
+function parseHkmcEvVmcuInfo01(value) {
+  const separatePacketBytes = parseBmsInfoBuffer(value);
+
+  const acceleratorPedalPositionRelative = unsignedIntFromBytes(separatePacketBytes[2][1]) / 2;
+
+  const vehicleSpeed = unsignedIntFromBytes(separatePacketBytes[2].slice(2, 4)) / 100;
+
+  log(i18next.t("hkmcEvVmcuInfo01"), "info");
+  log(
+    i18next.t("acceleratorPedalPositionRelative", {
+      acceleratorPedalPositionRelative: acceleratorPedalPositionRelative.toFixed(2),
+    }),
+    "info"
+  );
+  log(i18next.t("hkmcVehicleSpeed", { vehicleSpeed: vehicleSpeed.toFixed(2) }), "info");
+
+  return {
+    acceleratorPedalPositionRelative,
+    vehicleSpeed,
   };
 }
