@@ -70,6 +70,12 @@ button:active {
     transform: perspective(300px) translate3d(0, 0, -10px);
 }
 
+button[data-enabled="true"] {
+    border: 1px solid #ff0000;
+    background-color: #650000;
+    ;
+}
+
 .logTimestamp {
     display: none;
 }

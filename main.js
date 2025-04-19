@@ -273,7 +273,7 @@ i18next
 
     const allHkmcCommandButton = document.createElement("button");
     allHkmcCommandButton.innerText = i18next.t("allParamsNiroKona");
-    allHkmcCommandButton.addEventListener("click", async () => {
+    const readHkmcData = async () => {
       let allData = {};
 
       for (let command of [
@@ -309,12 +309,16 @@ i18next
           "info"
         );
       }
-    });
+    };
+    allHkmcCommandButton.addEventListener("click", readHkmcData);
+    allHkmcCommandButton.command = readHkmcData;
     commandsContainer.appendChild(allHkmcCommandButton);
 
     for (const command of Object.values(COMMANDS)) {
       const commandButton = document.createElement("button");
-      commandButton.addEventListener("click", () => sendData(command));
+      const commandHandler = async () => await sendData(command);
+      commandButton.addEventListener("click", commandHandler);
+      commandButton.command = commandHandler;
       commandButton.innerText = `${COMMAND_LABELS[command] ?? "Unknown command"} (${command})`;
 
       commandsContainer.appendChild(commandButton);
