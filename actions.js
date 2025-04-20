@@ -83,12 +83,48 @@ function commandsButtonCapture(event) {
   }
 }
 
+let useGeolocation = false;
+
+if ("geolocation" in navigator && window.location.search.includes("experimentUseGeolocation")) {
+  useGeolocation = true;
+}
+
+async function readGeolocation() {
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => resolve(position),
+      () => {
+        useGeolocation = false;
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 1000,
+        maximumAge: 0,
+      }
+    );
+  });
+}
+
 function startCommandRepeat() {
+  let repeatNumber = 0;
   if (repeatCommandsIntervalObject) {
     clearInterval(repeatCommandsIntervalObject);
   }
 
   repeatCommandsIntervalObject = setInterval(async () => {
+    log(`------------Repeat ${repeatNumber}------------`);
+    if (useGeolocation) {
+      const { coords, timestamp } = await readGeolocation();
+      log(`GPS TIMESTAMP: ${timestamp}`);
+      log(`GPS ACCURACY: ${coords.accuracy}`);
+      log(`GPS LATITUDE: ${coords.latitude}`);
+      log(`GPS LONGITUDE: ${coords.longitude}`);
+      log(`GPS ALTITUDE: ${coords.altitude}`);
+      log(`GPS ALTITUDE_ACCURACY: ${coords.altitudeAccuracy}`);
+      log(`GPS HEADING: ${coords.heading}`);
+      log(`GPS SPEED: ${coords.speed}`);
+    }
+
     for (const command of repeatCommandsQueue) {
       await command();
     }
