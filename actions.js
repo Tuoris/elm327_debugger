@@ -89,7 +89,6 @@ let geolocationWatch = null;
 async function watchGeolocation() {
   geolocationWatch = navigator.geolocation.watchPosition(
     (position) => {
-      console.log(position.coords);
       lastGeolocation = position;
     },
     () => {},
@@ -101,7 +100,7 @@ async function watchGeolocation() {
   );
 }
 
-if ("geolocation" in navigator && window.location.search.includes("experimentUseGeolocation")) {
+if ("geolocation" in navigator && window.location.search.includes("geo")) {
   watchGeolocation();
 }
 
@@ -112,17 +111,21 @@ function startCommandRepeat() {
   }
 
   repeatCommandsIntervalObject = setInterval(async () => {
-    log(`------------Repeat ${repeatNumber}------------`);
+    repeatNumber++;
+    log(i18next.t("repeatNumberMark", { repeatNumber }));
     if (lastGeolocation) {
-      const { coords, timestamp } = lastGeolocation;
-      log(`GPS TIMESTAMP: ${timestamp}`);
-      log(`GPS ACCURACY: ${coords.accuracy}`);
-      log(`GPS LATITUDE: ${coords.latitude}`);
-      log(`GPS LONGITUDE: ${coords.longitude}`);
-      log(`GPS ALTITUDE: ${coords.altitude}`);
-      log(`GPS ALTITUDE_ACCURACY: ${coords.altitudeAccuracy}`);
-      log(`GPS HEADING: ${coords.heading}`);
-      log(`GPS SPEED: ${coords.speed}`);
+      const {
+        coords: { accuracy, latitude, longitude, altitude, altitudeAccuracy, heading, speed },
+        timestamp,
+      } = lastGeolocation;
+      log(i18next.t("gpsTimestamp", { timestamp }));
+      log(i18next.t("gpsAccuracy", { accuracy }));
+      log(i18next.t("gpsLatitude", { latitude }));
+      log(i18next.t("gpsLongitude", { longitude }));
+      log(i18next.t("gpsAltitude", { altitude }));
+      log(i18next.t("gpsAltitudeAccuracy", { altitudeAccuracy }));
+      log(i18next.t("gpsHeading", { heading }));
+      log(i18next.t("gpsSpeed", { speed }));
     }
 
     for (const command of repeatCommandsQueue) {
