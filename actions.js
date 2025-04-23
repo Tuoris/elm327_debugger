@@ -83,26 +83,26 @@ function commandsButtonCapture(event) {
   }
 }
 
-let useGeolocation = false;
+let lastGeolocation = null;
+let geolocationWatch = null;
 
-if ("geolocation" in navigator && window.location.search.includes("experimentUseGeolocation")) {
-  useGeolocation = true;
+async function watchGeolocation() {
+  geolocationWatch = navigator.geolocation.watchPosition(
+    (position) => {
+      console.log(position.coords);
+      lastGeolocation = position;
+    },
+    () => {},
+    {
+      enableHighAccuracy: true,
+      timeout: 1000,
+      maximumAge: 0,
+    }
+  );
 }
 
-async function readGeolocation() {
-  return new Promise((resolve) => {
-    navigator.geolocation.getCurrentPosition(
-      (position) => resolve(position),
-      () => {
-        useGeolocation = false;
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 1000,
-        maximumAge: 0,
-      }
-    );
-  });
+if ("geolocation" in navigator && window.location.search.includes("experimentUseGeolocation")) {
+  watchGeolocation();
 }
 
 function startCommandRepeat() {
@@ -113,8 +113,8 @@ function startCommandRepeat() {
 
   repeatCommandsIntervalObject = setInterval(async () => {
     log(`------------Repeat ${repeatNumber}------------`);
-    if (useGeolocation) {
-      const { coords, timestamp } = await readGeolocation();
+    if (lastGeolocation) {
+      const { coords, timestamp } = lastGeolocation;
       log(`GPS TIMESTAMP: ${timestamp}`);
       log(`GPS ACCURACY: ${coords.accuracy}`);
       log(`GPS LATITUDE: ${coords.latitude}`);
