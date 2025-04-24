@@ -131,6 +131,7 @@ i18next
           gpsAltitudeAccuracy: "Точність висоти GPS: {{altitudeAccuracy}}",
           gpsHeading: "Напрямок GPS: {{heading}}",
           gpsSpeed: "Швидкість GPS: {{speed}}",
+          commandExecutionTime: `Час виконання команди: {{commandExecutionTime}} с`,
         },
       },
       en: {
@@ -241,6 +242,7 @@ i18next
           gpsAltitudeAccuracy: "GPS altitude accuracy: {{altitudeAccuracy}}",
           gpsHeading: "GPS heading: {{heading}}",
           gpsSpeed: "GPS speed: {{speed}}",
+          commandExecutionTime: `Command execution time: {{commandExecutionTime}} s`,
         },
       },
     },
@@ -423,6 +425,7 @@ async function connectAndSetupBluetoothScanner() {
 let receiveBuffer = "";
 let pendingCommandPromise = null;
 let isPendingCommand = false;
+let lastCommandTimestamp = null;
 
 function receiveValue(rawValue) {
   const rawBytes = Array.from(new Int8Array(rawValue.buffer)).map((n) => n.toString(16).padStart(2, "0"));
@@ -433,7 +436,11 @@ function receiveValue(rawValue) {
   receiveBuffer += value;
 
   if (value.includes(">")) {
-    console.timeEnd(currentCommand);
+    if (lastCommandTimestamp) {
+      const commandExecutionTime = (new Date().valueOf() - lastCommandTimestamp) / 1000;
+
+      log(i18next.t("commandExecutionTime", { commandExecutionTime: commandExecutionTime.toFixed(2) }));
+    }
     const result = parseResponse(receiveBuffer);
     responseResolve(result);
 
@@ -450,7 +457,7 @@ const sendData = async (data) => {
     return;
   }
 
-  console.time(`${data.trim()}`);
+  lastCommandTimestamp = new Date().valueOf();
 
   if (isPendingCommand && pendingCommandPromise) {
     log(i18next.t("waitingForPreviousCommand"));
