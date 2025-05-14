@@ -471,7 +471,7 @@ const sendData = async (data) => {
 
   if (data) {
     log(i18next.t("sendingData", { data }));
-    writeCharacteristic.writeValue(new TextEncoder().encode(data + "\r"));
+    writeCharacteristic.writeValueWithResponse(new TextEncoder().encode(data + "\r"));
     isPendingCommand = true;
     currentCommand = data.trim();
   }
