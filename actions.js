@@ -110,7 +110,15 @@ function startCommandRepeat() {
     clearInterval(repeatCommandsIntervalObject);
   }
 
+  let isLastRepeatFinished = true;
+
   repeatCommandsIntervalObject = setInterval(async () => {
+    if (!isLastRepeatFinished) {
+      return;
+    }
+
+    isLastRepeatFinished = false;
+
     repeatNumber++;
     log(i18next.t("repeatNumberMark", { repeatNumber }));
     if (lastGeolocation) {
@@ -131,6 +139,9 @@ function startCommandRepeat() {
     for (const command of repeatCommandsQueue) {
       await command();
     }
+
+    isLastRepeatFinished = true;
+    log(i18next.t("repeatNumberMarkEnd", { repeatNumber }));
   }, repeatInterval * 1000);
 }
 
