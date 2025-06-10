@@ -1,4 +1,17 @@
-let CONFIGS = [];
+const CONFIGS = Object.freeze([
+  {
+    name: "Blue ELM 327 clone / Viecar",
+    serviceUuid: "0000fff0-0000-1000-8000-00805f9b34fb",
+    readCharacteristicUuid: "0000fff1-0000-1000-8000-00805f9b34fb",
+    writeCharacteristicUuid: "0000fff2-0000-1000-8000-00805f9b34fb",
+  },
+  {
+    name: "Vgate iCar2 Bluetooth 4.0",
+    serviceUuid: "e7810a71-73ae-499d-8c15-faa9aef0c3f2",
+    readCharacteristicUuid: "bef8d6c9-9c21-4c9e-b632-bd58c1009f9f",
+    writeCharacteristicUuid: "bef8d6c9-9c21-4c9e-b632-bd58c1009f9f",
+  },
+]);
 
 const logsContainer = document.querySelector("#logs");
 
@@ -16,6 +29,8 @@ function log(string, level = "debug") {
   logsContainer.appendChild(newLogLine);
   newLogLine.scrollIntoView();
 }
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(() => resolve(), ms));
 
 i18next
   .init({
@@ -37,7 +52,8 @@ i18next
           deviceDoesNotSupportAnyProfile: "Пристрій не підтримує жодного з профілів комунікації.",
           characteristicFound: "Знайдено характеристику: {{characteristicUUID}}",
           creatingSubscription: "Створення підписки на отримання відповідей.",
-          subscriptionCreated: "Підписку створено - готовий до роботи.",
+          subscriptionCreated: "Підписку створено.",
+          readyForWork: "Готовий до роботи.",
           valueReceived: "Отримано: {{value}}",
           attemptToSendCommandFailed: "Спроба надіслати команду: {{data}} - відсутнє підключення.",
           waitingForPreviousCommand: "Очікую на відповідь на попередню команду...",
@@ -150,7 +166,8 @@ i18next
           deviceDoesNotSupportAnyProfile: "Device does not support any communication profiles.",
           characteristicFound: "Found characteristic: {{characteristicUUID}}",
           creatingSubscription: "Creating subscription for receiving responses.",
-          subscriptionCreated: "Subscription created - ready to work.",
+          subscriptionCreated: "Subscription created.",
+          readyForWork: "Ready.",
           valueReceived: "Received: {{value}}",
           attemptToSendCommandFailed: "Attempt to send command: {{data}} - connection is missing.",
           waitingForPreviousCommand: "Waiting response from previous command...",
@@ -252,19 +269,6 @@ i18next
   .then(function (t) {
     log(t("pressToStart"), "info");
 
-    CONFIGS = [
-      {
-        name: i18next.t("elm327Clone"),
-        serviceUuid: "0000fff0-0000-1000-8000-00805f9b34fb",
-        characteristicUuid: 0xfff1,
-      },
-      {
-        name: i18next.t("vgateIcar2"),
-        serviceUuid: "e7810a71-73ae-499d-8c15-faa9aef0c3f2",
-        characteristicUuid: "bef8d6c9-9c21-4c9e-b632-bd58c1009f9f",
-      },
-    ];
-
     COMMAND_LABELS = {
       [COMMANDS.VIN]: "VIN",
       [COMMANDS.MONITOR_STATUS_SINCE_DTCS_CLEARED]: i18next.t("monitoringStatusAfterFaultCodesClearing"),
@@ -280,6 +284,7 @@ i18next
       [COMMANDS.ENGINE_FUEL_RATE]: i18next.t("fuelConsumption"),
       [COMMANDS.EXTENDED_TIMEOUT]: i18next.t("increaseResponseTime"),
       [COMMANDS.HKMC_EV_BMS_ECU]: i18next.t("hkmcEvBmsEcu"),
+      [COMMANDS.HKMC_EV_ECU_NAME]: "ECU NAME",
       [COMMANDS.HKMC_EV_BMS_INFO_01]: i18next.t("hkmcEvBmsInfo", { commandNo: 1 }),
       [COMMANDS.HKMC_EV_BMS_INFO_02]: i18next.t("hkmcEvBmsInfo", { commandNo: 2 }),
       [COMMANDS.HKMC_EV_BMS_INFO_03]: i18next.t("hkmcEvBmsInfo", { commandNo: 3 }),
@@ -372,6 +377,7 @@ async function onRequestBluetoothDeviceButtonClick() {
 
 document.querySelector("#requestDevice").addEventListener("click", onRequestBluetoothDeviceButtonClick);
 
+let readCharacteristic = null;
 let writeCharacteristic = null;
 let responseResolve = null;
 
@@ -401,18 +407,20 @@ async function connectAndSetupBluetoothScanner() {
     return;
   }
 
-  const characteristicUUID = CONFIGS[serviceIndex].characteristicUuid;
-  const characteristic = await service.getCharacteristic(characteristicUUID);
+  const readCharacteristicUuid = CONFIGS[serviceIndex].readCharacteristicUuid;
+  readCharacteristic = await service.getCharacteristic(readCharacteristicUuid);
 
-  log(i18next.t("characteristicFound", { characteristicUUID }));
-  writeCharacteristic = characteristic;
+  const writeCharacteristicUuid = CONFIGS[serviceIndex].writeCharacteristicUuid;
+  writeCharacteristic = await service.getCharacteristic(writeCharacteristicUuid);
 
-  await writeCharacteristic.startNotifications();
+  log(i18next.t("characteristicFound", { characteristicUUID: readCharacteristicUuid }));
+  log(i18next.t("characteristicFound", { characteristicUUID: writeCharacteristicUuid }));
+
   log(i18next.t("creatingSubscription"));
-  writeCharacteristic.addEventListener("characteristicvaluechanged", (event) => {
-    const rawValue = event.currentTarget.value;
-    receiveValue(rawValue);
-  });
+  readCharacteristic.addEventListener("characteristicvaluechanged", () => receiveValue(readCharacteristic.value));
+  await readCharacteristic.startNotifications();
+
+  log(i18next.t("subscriptionCreated"));
 
   await sendData("AT WS");
   await sendData("AT E0");
@@ -421,7 +429,7 @@ async function connectAndSetupBluetoothScanner() {
   await sendData("AT AT1");
   await sendData("0100");
 
-  log(i18next.t("subscriptionCreated"));
+  log(i18next.t("readyForWork"));
 }
 
 let receiveBuffer = "";
@@ -508,6 +516,7 @@ const COMMANDS = {
   CONTROL_MODULE_VOLTAGE: "0142",
   ENGINE_FUEL_RATE: "015E",
   EXTENDED_TIMEOUT: "AT ST96",
+  HKMC_EV_ECU_NAME: "09 0A",
   HKMC_EV_BMS_ECU: "AT SH 7E4",
   HKMC_EV_BMS_INFO_01: "220101",
   HKMC_EV_BMS_INFO_02: "220102",
@@ -538,6 +547,7 @@ const handlers = {
   [COMMANDS.FUEL_TANK_LEVEL]: parseFuelTankLevel,
   [COMMANDS.ENGINE_FUEL_RATE]: parseEngineFuelRate,
   [COMMANDS.CONTROL_MODULE_VOLTAGE]: parseControlModuleVoltage,
+  [COMMANDS.HKMC_EV_ECU_NAME]: parseHkmcEvEcuName,
   [COMMANDS.HKMC_EV_BMS_INFO_01]: parseHkmcEvBmsInfo01,
   [COMMANDS.HKMC_EV_BMS_INFO_02]: parseHkmcEvBmsInfo02,
   [COMMANDS.HKMC_EV_BMS_INFO_03]: parseHkmcEvBmsInfo03,
@@ -802,6 +812,34 @@ function parseBmsInfoBuffer(buffer) {
   return packets;
 }
 
+const sampleHkmcEvEcuName = `017 
+0: 49 0A 01 42 45 43
+1: 4D 2D 42 2B 45 6E 65
+2: 72 67 79 43 74 72 6C
+3: 00 00 00 AA AA AA AA
+>`;
+
+function parseHkmcEvEcuName(value) {
+  const separatePacketBytes = parseBmsInfoBuffer(value);
+
+  const bytes = separatePacketBytes.flat();
+  console.log(bytes);
+  const characters = bytes.map((byte) => unsignedIntFromBytes(byte)).map((int) => String.fromCharCode(int));
+
+  const startIndex = characters.findIndex((char) => char === String.fromCharCode(1));
+  const endIndex = characters.findIndex((char) => char === String.fromCharCode(0));
+
+  let ecuName = "";
+  if (startIndex !== -1 && endIndex !== -1) {
+    ecuName = characters.slice(startIndex + 1, endIndex).join("");
+    log(`ECU name: ${ecuName}`, "info");
+  }
+
+  return {
+    ecuName,
+  };
+}
+
 const sampleParseHkmcEvBmsInfo01 =
   "7F 22 12 \r7F 22 12 \r03E \r0: 62 01 01 FF F7 E7 \r7F 22 121: FF 88 35 93 3E 1C 83 \r2: 00 28 0E D4 05 04 043: 04 04 04 00 00 03 C14: 03 C1 36 00 00 92 005: 06 C0 E4 00 06 A2 CE6: 00 02 8E 5C 00 02 717: 1F 01 35 B3 3E 0D 018: 7C 00 00 00 00 03 E8>";
 
@@ -850,8 +888,8 @@ function parseHkmcEvBmsInfo01(value) {
   const bmsIgnition = unsignedIntFromBytes(separatePacketBytes[7][5]).toString(2);
   const bmsCapacitorVoltage = unsignedIntFromBytes([separatePacketBytes[7][6], separatePacketBytes[8][0]]);
 
-  const motorRpm1 = unsignedIntFromBytes(separatePacketBytes[8].slice(1, 3));
-  const motorRpm2 = unsignedIntFromBytes(separatePacketBytes[8].slice(3, 5));
+  const motorRpm1 = signedIntFromBytes(separatePacketBytes[8].slice(1, 3));
+  const motorRpm2 = signedIntFromBytes(separatePacketBytes[8].slice(3, 5));
 
   const surgeResistorKOhm = unsignedIntFromBytes(separatePacketBytes[8].slice(5, 7));
 
