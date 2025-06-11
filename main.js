@@ -13,6 +13,43 @@ const CONFIGS = Object.freeze([
   },
 ]);
 
+const HEADERS = {
+  BMS_ECU: "7E4",
+  CLUSTER_ECU: "7C6",
+  ABS_ECU: "7D1",
+  VMCU_ECU: "7E2",
+};
+
+const COMMANDS = {
+  VIN: "0902",
+  MONITOR_STATUS_SINCE_DTCS_CLEARED: "0101",
+  ENGINE_COOLANT_TEMPERATURE: "0105",
+  ENGINE_OIL_TEMPERATURE: "015C",
+  CALCULATED_ENGINE_LOAD: "0104",
+  ENGINE_SPEED: "010C",
+  VEHICLE_SPEED: "010D",
+  INTAKE_AIR_TEMPERATURE: "010F",
+  MASS_AIR_FLOW_SENSOR: "0110",
+  FUEL_TANK_LEVEL: "012F",
+  CONTROL_MODULE_VOLTAGE: "0142",
+  ENGINE_FUEL_RATE: "015E",
+  EXTENDED_TIMEOUT: "AT ST96",
+  HKMC_EV_ECU_NAME: "09 0A",
+  HKMC_EV_BMS_ECU: `AT SH ${HEADERS.BMS_ECU}`,
+  HKMC_EV_BMS_INFO_01: "220101",
+  HKMC_EV_BMS_INFO_02: "220102",
+  HKMC_EV_BMS_INFO_03: "220103",
+  HKMC_EV_BMS_INFO_04: "220104",
+  HKMC_EV_BMS_INFO_05: "220105",
+  HKMC_EV_BMS_INFO_06: "220106",
+  HKMC_EV_CLUSTER_ECU: `AT SH ${HEADERS.CLUSTER_ECU}`,
+  HKMC_EV_CLUSTER_INFO_02: "22B002",
+  HKMC_EV_ABS_ECU: `AT SH ${HEADERS.ABS_ECU}`,
+  HKMC_EV_ABS_INFO_01: "22C101",
+  HKMC_EV_VMCU_ECU: `AT SH ${HEADERS.VMCU_ECU}`,
+  HKMC_EV_VMCU_INFO_1: "2101",
+};
+
 const logsContainer = document.querySelector("#logs");
 
 function log(string, level = "debug") {
@@ -459,7 +496,9 @@ function receiveValue(rawValue) {
   }
 }
 
+let currentHeader = "";
 let currentCommand = "";
+let currentEcu = "";
 
 const sendData = async (data) => {
   if (!writeCharacteristic) {
@@ -484,6 +523,18 @@ const sendData = async (data) => {
     writeCharacteristic.writeValueWithResponse(new TextEncoder().encode(data + "\r"));
     isPendingCommand = true;
     currentCommand = data.trim();
+
+    const possibleEcuCommand = currentCommand.replaceAll("=", " ").replaceAll("  ", " ").toUpperCase();
+    if (
+      [
+        COMMANDS.HKMC_EV_BMS_ECU,
+        COMMANDS.HKMC_EV_CLUSTER_ECU,
+        COMMANDS.HKMC_EV_ABS_ECU,
+        COMMANDS.HKMC_EV_VMCU_ECU,
+      ].includes(possibleEcuCommand)
+    ) {
+      currentEcu = possibleEcuCommand.replace("AT SH ", "");
+    }
   }
 
   pendingCommandPromise = new Promise((resolve) => {
@@ -502,36 +553,6 @@ submitForm.addEventListener("submit", (event) => {
   sendData(dataToSent);
 });
 
-const COMMANDS = {
-  VIN: "0902",
-  MONITOR_STATUS_SINCE_DTCS_CLEARED: "0101",
-  ENGINE_COOLANT_TEMPERATURE: "0105",
-  ENGINE_OIL_TEMPERATURE: "015C",
-  CALCULATED_ENGINE_LOAD: "0104",
-  ENGINE_SPEED: "010C",
-  VEHICLE_SPEED: "010D",
-  INTAKE_AIR_TEMPERATURE: "010F",
-  MASS_AIR_FLOW_SENSOR: "0110",
-  FUEL_TANK_LEVEL: "012F",
-  CONTROL_MODULE_VOLTAGE: "0142",
-  ENGINE_FUEL_RATE: "015E",
-  EXTENDED_TIMEOUT: "AT ST96",
-  HKMC_EV_ECU_NAME: "09 0A",
-  HKMC_EV_BMS_ECU: "AT SH 7E4",
-  HKMC_EV_BMS_INFO_01: "220101",
-  HKMC_EV_BMS_INFO_02: "220102",
-  HKMC_EV_BMS_INFO_03: "220103",
-  HKMC_EV_BMS_INFO_04: "220104",
-  HKMC_EV_BMS_INFO_05: "220105",
-  HKMC_EV_BMS_INFO_06: "220106",
-  HKMC_EV_CLUSTER_ECU: "AT SH 7C6",
-  HKMC_EV_CLUSTER_INFO_02: "22B002",
-  HKMC_EV_ABS_ECU: "AT SH 7D1",
-  HKMC_EV_ABS_INFO_01: "22C101",
-  HKMC_EV_VMCU_ECU: "AT SH 7E2",
-  HKMC_EV_VMCU_INFO_1: "2101",
-};
-
 let COMMAND_LABELS = {};
 
 const handlers = {
@@ -548,19 +569,19 @@ const handlers = {
   [COMMANDS.ENGINE_FUEL_RATE]: parseEngineFuelRate,
   [COMMANDS.CONTROL_MODULE_VOLTAGE]: parseControlModuleVoltage,
   [COMMANDS.HKMC_EV_ECU_NAME]: parseHkmcEvEcuName,
-  [COMMANDS.HKMC_EV_BMS_INFO_01]: parseHkmcEvBmsInfo01,
-  [COMMANDS.HKMC_EV_BMS_INFO_02]: parseHkmcEvBmsInfo02,
-  [COMMANDS.HKMC_EV_BMS_INFO_03]: parseHkmcEvBmsInfo03,
-  [COMMANDS.HKMC_EV_BMS_INFO_04]: parseHkmcEvBmsInfo04,
-  [COMMANDS.HKMC_EV_BMS_INFO_05]: parseHkmcEvBmsInfo05,
-  [COMMANDS.HKMC_EV_BMS_INFO_06]: parseHkmcEvBmsInfo06,
-  [COMMANDS.HKMC_EV_CLUSTER_INFO_02]: parseHkmcEvClusterInfo02,
-  [COMMANDS.HKMC_EV_ABS_INFO_01]: parseHkmcEvAbsInfo01,
-  [COMMANDS.HKMC_EV_VMCU_INFO_1]: parseHkmcEvVmcuInfo01,
+  [HEADERS.BMS + " " + COMMANDS.HKMC_EV_BMS_INFO_01]: parseHkmcEvBmsInfo01,
+  [HEADERS.BMS + " " + COMMANDS.HKMC_EV_BMS_INFO_02]: parseHkmcEvBmsInfo02,
+  [HEADERS.BMS + " " + COMMANDS.HKMC_EV_BMS_INFO_03]: parseHkmcEvBmsInfo03,
+  [HEADERS.BMS + " " + COMMANDS.HKMC_EV_BMS_INFO_04]: parseHkmcEvBmsInfo04,
+  [HEADERS.BMS + " " + COMMANDS.HKMC_EV_BMS_INFO_05]: parseHkmcEvBmsInfo05,
+  [HEADERS.BMS + " " + COMMANDS.HKMC_EV_BMS_INFO_06]: parseHkmcEvBmsInfo06,
+  [HEADERS.BMS + " " + COMMANDS.HKMC_EV_CLUSTER_INFO_02]: parseHkmcEvClusterInfo02,
+  [HEADERS.BMS + " " + COMMANDS.HKMC_EV_ABS_INFO_01]: parseHkmcEvAbsInfo01,
+  [HEADERS.BMS + " " + COMMANDS.HKMC_EV_VMCU_INFO_1]: parseHkmcEvVmcuInfo01,
 };
 
 function parseResponse(value) {
-  const handler = handlers[currentCommand];
+  const handler = handlers[currentCommand] || handlers[currentEcu + " " + currentCommand];
   if (handler) {
     const adaptedValue = adaptValueForCommand(value, currentCommand);
     return handler(adaptedValue);
