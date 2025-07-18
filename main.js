@@ -2,14 +2,13 @@ const CONFIGS = Object.freeze([
   {
     name: "Blue ELM 327 clone / Viecar",
     serviceUuid: "0000fff0-0000-1000-8000-00805f9b34fb",
-    readCharacteristicUuid: "0000fff1-0000-1000-8000-00805f9b34fb",
+    characteristicUuid: "0000fff1-0000-1000-8000-00805f9b34fb",
     writeCharacteristicUuid: "0000fff2-0000-1000-8000-00805f9b34fb",
   },
   {
     name: "Vgate iCar2 Bluetooth 4.0",
     serviceUuid: "e7810a71-73ae-499d-8c15-faa9aef0c3f2",
-    readCharacteristicUuid: "bef8d6c9-9c21-4c9e-b632-bd58c1009f9f",
-    writeCharacteristicUuid: "bef8d6c9-9c21-4c9e-b632-bd58c1009f9f",
+    characteristicUuid: "bef8d6c9-9c21-4c9e-b632-bd58c1009f9f",
   },
 ]);
 
@@ -91,7 +90,7 @@ i18next
           creatingSubscription: "Створення підписки на отримання відповідей.",
           subscriptionCreated: "Підписку створено.",
           readyForWork: "Готовий до роботи.",
-          valueReceived: "Отримано: {{value}}",
+          valueReceived: "{{value}}",
           attemptToSendCommandFailed: "Спроба надіслати команду: {{data}} - відсутнє підключення.",
           waitingForPreviousCommand: "Очікую на відповідь на попередню команду...",
           previousCommandTimeout:
@@ -205,7 +204,7 @@ i18next
           creatingSubscription: "Creating subscription for receiving responses.",
           subscriptionCreated: "Subscription created.",
           readyForWork: "Ready.",
-          valueReceived: "Received: {{value}}",
+          valueReceived: "{{value}}",
           attemptToSendCommandFailed: "Attempt to send command: {{data}} - connection is missing.",
           waitingForPreviousCommand: "Waiting response from previous command...",
           previousCommandTimeout:
@@ -428,11 +427,11 @@ async function connectAndSetupBluetoothScanner() {
   log(i18next.t("deviceServiceRetrieving"));
 
   let service;
-  let serviceIndex;
-  for (const [index, config] of CONFIGS.entries()) {
+  let validConfig;
+  for (const config of CONFIGS) {
     try {
       service = await server.getPrimaryService(config.serviceUuid);
-      serviceIndex = index;
+      validConfig = config;
       log(i18next.t("serviceFound"));
     } catch {
       log(i18next.t("serviceNotSupported", { serviceUuid: config.serviceUuid }));
@@ -444,14 +443,19 @@ async function connectAndSetupBluetoothScanner() {
     return;
   }
 
-  const readCharacteristicUuid = CONFIGS[serviceIndex].readCharacteristicUuid;
-  readCharacteristic = await service.getCharacteristic(readCharacteristicUuid);
+  readCharacteristic = await service.getCharacteristic(validConfig.characteristicUuid);
+  if (validConfig.writeCharacteristicUuid) {
+    writeCharacteristic = await service.getCharacteristic(validConfig.writeCharacteristicUuid);
+  } else {
+    writeCharacteristic = readCharacteristic;
+  }
 
-  const writeCharacteristicUuid = CONFIGS[serviceIndex].writeCharacteristicUuid;
-  writeCharacteristic = await service.getCharacteristic(writeCharacteristicUuid);
-
-  log(i18next.t("characteristicFound", { characteristicUUID: readCharacteristicUuid }));
-  log(i18next.t("characteristicFound", { characteristicUUID: writeCharacteristicUuid }));
+  log(i18next.t("characteristicFound", { characteristicUUID: validConfig.characteristicUuid }));
+  log(
+    i18next.t("characteristicFound", {
+      characteristicUUID: validConfig.writeCharacteristicUuid || validConfig.characteristicUuid,
+    })
+  );
 
   log(i18next.t("creatingSubscription"));
   readCharacteristic.addEventListener("characteristicvaluechanged", () => receiveValue(readCharacteristic.value));
